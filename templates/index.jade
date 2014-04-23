@@ -1,0 +1,25 @@
+extends layout
+
+block content
+    h1 Streaming Library
+
+    audio.player(src='', preload='auto')
+
+    div.controls
+        div.up_next
+            div.arrow &#9650;
+            div.list
+        div.track
+        div.progress
+
+    div.library
+        each track, index in library
+            if track
+                if track.tags.title
+                    a.track(href="#", data-track_id=index, data-track_title=track.tags.title, data-track_artist=track.artist)= track.tags.artist + ' - ' + track.tags.title
+                else
+                    a.track(href="#", data-track_id=index)= track.base
+
+    script(type='text/javascript', src='/js/stream.js')
+
+
