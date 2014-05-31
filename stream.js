@@ -8,10 +8,13 @@ var express = require('express'),
     execFile = require('child_process').execFile;
 var app = express(),
     library = [],
+    artists = { },
+    albums = { },
     valid_extensions = [ '.mp3', '.wav', '.m4a', '.ogg' ];
 
 // -- Stream Configuration
-var library_path = '/home/cperrone/music/';
+var library_path = '/home/cperrone/music/',
+    library_file = library_path + 'library.json';
 
 // -- Setup Express
 app.use(express.static(__dirname + '/static/'));
@@ -22,7 +25,7 @@ app.set('view engine', 'jade');
 app.get('/', function(req, res) {
     res.render('index', {
         pageTitle: 'Streaming Library',
-        library: library,
+        library: library
     });
 });
 
@@ -43,44 +46,50 @@ app.all('/play/:track', function(req, res) {
     }
 });
 
-// -- Index Audio Library
-execFile('find', [ library_path, '-type', 'f' ], function(err, stdout, stderr) {
-    var file_list = stdout.split('\n');
-    file_list.pop(); // removes current dir from file_list
-    file_list.forEach(function(filename, i) {
-        console.log("Indexing " + filename);
-
-        // bail if we've found an invalid extension
-        var extension = path.extname(filename).toLowerCase();
-        if (valid_extensions.indexOf(extension) < 0) {
-            console.log("Invalid extension " + extension + " found");
-            return;
-        }
-
-        // save in library
-        library[i] = {
-            path: filename,
-            base: path.basename(filename),
-            rel: path.relative(library_path, filename),
-            tags: { },
-        };
-
-        var track_tags = { };
-
-        // get id3 tags
-        id3({ file: filename, type: id3.OPEN_LOCAL }, function (err, id3_tags) {
-            if (!err) {
-                library[i].tags.title = id3_tags.title;
-                library[i].tags.artist = id3_tags.artist;
-                library[i].tags.album = id3_tags.album;
-            } else {
-                console.log(err);
-            }
+function getFullLibraryByAlbum() {
+    var tmp_lib = [];
+    Object.keys(albums).forEach(function(key) {
+        var album = albums[key];
+        Object.keys(album).forEach(function(track_num) {
+            var song_id = album[track_num];
+            tmp_lib.push(library[song_id]);
         });
-
     });
+    return tmp_lib;
+}
+function getFullLibraryByArtist() {
+    var tmp_lib = [];
+    Object.keys(artists).forEach(function(key) {
+        var artist = artists[key];
+        artist.forEach(function(track_num, j) {
+            tmp_lib.push(library[track_num]);
+        });
+    });
+    return tmp_lib;
+}
 
-    // -- Start the server once we're done indexing
-    app.listen(8081);
+// -- Read and parse the library file
+var library_data = fs.readFileSync(library_file),
+    full_library = JSON.parse(library_data),
+    songs = full_library.songs,
+    artists = full_library.artists,
+    albums = full_library.albums;
+
+// -- Go through each song, add more path info and add to node library
+songs.forEach(function(song, i) {
+    var filename = song.path;
+
+    library[i] = {
+        path: filename,
+        base: path.basename(filename),
+        rel: path.relative(library_path, filename),
+        tags: {
+            title: song.title,
+            artist: song.artist,
+            album: song.album,
+            track: song.track,
+        }
+    };
 });
 
+app.listen(8081);

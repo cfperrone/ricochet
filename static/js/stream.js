@@ -48,9 +48,12 @@ PLAYER.on('ended', function() {
 
 // places the track name into the floating control module
 function setControlsInfo(obj) {
-    var html = obj.html();
+    var track_title = obj.data('track_title'),
+        track_artist = obj.data('track_artist');
     CONTROLS.find('.track').fadeOut(500, function() {
-        $(this).html(html).fadeIn(500);
+        $(this).find('.title').html(track_title);
+        $(this).find('.artist').html(track_artist);
+        $(this).fadeIn(500);
     });
 
     UP_NEXT_LIST.html($(playlist).slice(position, position+10).clone());

@@ -10,13 +10,15 @@ block content
             div.arrow &#9650;
             div.list
         div.track
+            div.title
+            div.artist
         div.progress
 
     div.library
         each track, index in library
             if track
                 if track.tags.title
-                    a.track(href="#", data-track_id=index, data-track_title=track.tags.title, data-track_artist=track.artist)= track.tags.artist + ' - ' + track.tags.title
+                    a.track(href="#", data-track_id=index, data-track_title=track.tags.title, data-track_artist=track.tags.artist)= track.tags.artist + ' - ' + track.tags.album + ' - (' + track.tags.track[0] + ') ' + track.tags.title
                 else
                     a.track(href="#", data-track_id=index)= track.base
 

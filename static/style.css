@@ -42,12 +42,20 @@ a:active { color: black; text-decoration: underline; }
         width: 0;
     }
     .controls > .track {
-        font-weight: bold;
-        font-size: 1.5em;
-        margin-top: 15px;
         margin-left: 10px;
-        width: 500px;
     }
+        .controls > .track > .title {
+            font-weight: bold;
+            font-size: 1.5em;
+            margin-top: 15px;
+            float: left;
+        }
+        .controls > .track > .artist {
+            font-size: 1em;
+            margin-top: 20px;
+            margin-left: 10px;
+            float: left;
+        }
     .controls .up_next {
         margin-top: 15px;
         float: right;
