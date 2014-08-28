@@ -1,0 +1,38 @@
+.play, .next, .prev {
+    cursor: pointer;
+}
+.track {
+    cursor: pointer;
+}
+
+.progress {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    background-color: #5cb85c;
+    height: 3px;
+    width: 0;
+    padding: 0;
+    margin: 0;
+}
+
+.now-playing,
+.controls {
+    margin: 13px;
+    font-size: 20px;
+    line-height: 1em;
+}
+    .now-playing .artist,
+    .now-playing .title,
+    .controls .duration {
+        margin-right: 30px;
+    }
+    .now-playing .artist {
+        color: #f0ad4e;
+    }
+    .now-playing .title {
+        color: white;
+    }
+    .controls .duration {
+        color: white;
+    }

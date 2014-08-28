@@ -88,6 +88,7 @@ songs.forEach(function(song, i) {
             artist: song.artist,
             album: song.album,
             track: song.track,
+            duration: song.duration
         }
     };
 });

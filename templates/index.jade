@@ -3,24 +3,35 @@ extends layout
 block content
     h1 Streaming Library
 
-    audio.player(src='', preload='auto')
+    audio.player(src='', preload='auto', volume='0')
 
-    div.controls
-        div.up_next
-            div.arrow &#9650;
-            div.list
-        div.track
-            div.title
-            div.artist
-        div.progress
+    nav.navbar.navbar-inverse.navbar-fixed-bottom(role='navigation')
+        .container-fluid
+            p.navbar-text.navbar-right.controls
+                span.duration
+                i.prev.fa.fa-lg.fa-fw.fa-backward
+                i.fa.fa-lg.fa-fw
+                i.play.fa.fa-lg.fa-fw.fa-play
+                i.fa.fa-lg.fa-fw
+                i.next.fa.fa-lg.fa-fw.fa-forward
+            p.navbar-text.now-playing
+                span.artist
+                span.title
+            .progress
 
-    div.library
+    table.table.table-striped.table-hover.table-responsive.library
         each track, index in library
             if track
                 if track.tags.title
-                    a.track(href="#", data-track_id=index, data-track_title=track.tags.title, data-track_artist=track.tags.artist)= track.tags.artist + ' - ' + track.tags.album + ' - (' + track.tags.track[0] + ') ' + track.tags.title
+                    tr.track(href="#", data-track_id=index, data-track_title=track.tags.title, data-track_artist=track.tags.artist)
+                        td.col-md-4= track.tags.title
+                        td.col-md-1= track.tags.duration
+                        td.col-md-2= track.tags.artist
+                        td.col-md-2= track.tags.album
+                        td.col-md-1= track.tags.track[0]
                 else
-                    a.track(href="#", data-track_id=index)= track.base
+                    tr.track(href="#", data-track_id=index)
+                        td.col-md-12 track.base
 
     script(type='text/javascript', src='/js/stream.js')
 
