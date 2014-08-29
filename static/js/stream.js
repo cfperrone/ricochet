@@ -1,6 +1,7 @@
 //stream.js
 
 var PLAYER = $('audio.player'),
+    p = PLAYER.get(0),
     CONTROLS = $('.controls'),
     CONTROLS_PLAY = CONTROLS.find('.play'),
     CONTROLS_NEXT = CONTROLS.find('.next'),
@@ -8,33 +9,57 @@ var PLAYER = $('audio.player'),
     PROGRESS = $('.progress'),
     NOW_PLAYING = $('.now-playing'),
     DURATION = $('.controls .duration'),
-    playlist = [ ],
+    playing = null,
     position = 0;
 
 $('.library .track').click(function() {
-    // setup playlist
-    playlist = $(this).nextAll().andSelf().toArray();
-    console.log(playlist.length + " left");
-
     playTrack($(this));
 });
 
 function playTrack(obj) {
-    var name=obj.data('track_id');
+    // If the object is empty
+    if (obj.length == 0) {
+        stopPlayback();
+        return;
+    }
 
-    PLAYER.attr('src', '/play/' + name);
+    // Configure the audio tag
+    PLAYER.attr('src', '/play/' + obj.data('track_id'));
     PLAYER.trigger('play');
 
+    // Set the global playing track
+    playing = obj;
     setControlsInfo(obj);
+}
+function nextTrack() {
+    var next = $(playing).next();
+    return next;
+}
+function prevTrack() {
+    var prev = $(playing).prev();
+    return prev;
+}
+function stopPlayback() {
+    playing = null;
+
+    // Actually stop the audio tag
+    PLAYER.trigger('pause');
+    PLAYER.attr('src', '');
+    setControlsInfo(null);
+
+    // Clear the now playing bar
+    //NOW_PLAYING.fadeOut(500);
+
+    // Clear the now playing row
+    $('.library tr.info').removeClass('info');
 }
 
 // every 250ms, update the progress bar and duration clock
 var progressInterval = setInterval(function() {
-    var player = PLAYER.get(0),
-        bar = PROGRESS,
-        cur = player.currentTime,
-        dur = player.duration,
-        playing = !player.paused,
+    var bar = PROGRESS,
+        cur = p.currentTime,
+        dur = p.duration,
+        playing = !p.paused,
         width = 0,
         screenWidth = 100;
 
@@ -51,8 +76,7 @@ var progressInterval = setInterval(function() {
 
 // Audio Player Events
 PLAYER.on('ended', function() {
-    var next = playlist[++position];
-    playTrack($(next));
+    nextTrack();
 });
 PLAYER.on('pause', function() {
     CONTROLS.find('.play').removeClass('fa-pause').addClass('fa-play');
@@ -74,6 +98,12 @@ CONTROLS_PLAY.click(function() {
         p.pause();
     }
 });
+CONTROLS_NEXT.click(function() {
+    playTrack(nextTrack());
+});
+CONTROLS_PREV.click(function() {
+    playTrack(prevTrack());
+});
 
 // Keyboard events
 Mousetrap.bind('space', function() {
@@ -82,8 +112,13 @@ Mousetrap.bind('space', function() {
 
 // places the track name into the floating control module
 function setControlsInfo(obj) {
-    var track_title = obj.data('track_title'),
-        track_artist = obj.data('track_artist');
+    if ($.isEmptyObject(obj)) {
+        var track_title = "",
+            track_artist = "";
+    } else {
+        var track_title = obj.data('track_title'),
+            track_artist = obj.data('track_artist');
+    }
     NOW_PLAYING.fadeOut(500, function() {
         $(this).find('.title').html(track_title);
         $(this).find('.artist').html(track_artist);
@@ -92,15 +127,10 @@ function setControlsInfo(obj) {
 
     // Update the row color for the currently playing track
     $('.library tr.info').removeClass('info');
-    obj.addClass('info');
 
-    $('.controls .track').click(function() {
-        // setup playlist
-        playlist = $(this).nextAll().andSelf().toArray();
-        console.log(playlist.length + " left");
-
-        playTrack($(this));
-    });
+    if (!$.isEmptyObject(obj)) {
+        obj.addClass('info');
+    }
 }
 
 function formatSeconds(input) {
