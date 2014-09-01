@@ -118,48 +118,39 @@ function updateIndex() {
             }
 
             var fd = fs.createReadStream(filename);
-            var hash = crypto.createHash('sha1');
-            hash.setEncoding('hex');
+            var id = crypto.createHash('md5').update(filename).digest('hex');
 
-            fd.on('end', function() {
-                hash.end();
-                var id = hash.read();
+            // Get id3 tags
+            id3({ file: filename, type: id3.OPEN_LOCAL }, function (err, tags) {
+                if (err) {
+                    console.log(err);
+                    return;
+                }
 
-                // Get id3 tags
-                id3({ file: filename, type: id3.OPEN_LOCAL }, function (err, tags) {
-                    if (err) {
-                        console.log(err);
-                        return;
+                // Start building a model of metadata
+                var track_data = {
+                    filename: filename,
+                    title: tags.title,
+                    artist: tags.artist,
+                    album: tags.album,
+                    genre: tags.genre,
+                };
+                // Get additional info from helper functions
+                track_data = getTrackNumbers(track_data, tags);
+
+                // Check if the index already exists, otherwise create it
+                Track.findOrCreate({ id: id }, track_data)
+                .success(function(track, created) {
+                    if (created) {
+                        console.log("Created " + track.title);
+                    } else {
+                        console.log("Indexed " + track.title);
                     }
-
-                    // Start building a model of metadata
-                    var track_data = {
-                        filename: filename,
-                        title: tags.title,
-                        artist: tags.artist,
-                        album: tags.album,
-                        genre: tags.genre,
-                    };
-                    // Get additional info from helper functions
-                    track_data = getTrackNumbers(track_data, tags);
-
-                    // Check if the index already exists, otherwise create it
-                    Track.findOrCreate({ id: id }, track_data)
-                    .success(function(track, created) {
-                        if (created) {
-                            console.log("Created " + track.title);
-                        } else {
-                            console.log("Indexed " + track.title);
-                        }
-                    })
-                    .error(function(err) {
-                        console.log(err);
-                    });
+                })
+                .error(function(err) {
+                    console.log(err);
                 });
             });
-
-            fd.pipe(hash);
-
         });
     });
 }
