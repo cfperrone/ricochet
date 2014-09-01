@@ -172,17 +172,21 @@ function getTrackNumbers(data, tags) {
         data.track_num = parseInt(filetrack[1]);
     }
     if (v1track != null) {
-        data.track_num = v1track;
+        data.track_num = parseInt(v1track);
     }
     if (v2track != null) {
         var parts = v2track.split('/');
         data.track_num = parseInt(parts[0]);
-        data.track_total = parseInt(parts[1]);
+        if (parts.length > 1) {
+            data.track_total = parseInt(parts[1]);
+        }
     }
     if (v2disc != null) {
         var parts = v2disc.split('/');
         data.disc_num = parseInt(parts[0]);
-        data.disc_total = parseInt(parts[1]);
+        if (parts.length > 1) {
+            data.disc_total = parseInt(parts[1]);
+        }
     }
 
     return data;
