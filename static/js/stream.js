@@ -31,11 +31,11 @@ function playTrack(obj) {
     playing = obj;
     setControlsInfo(obj);
 }
-function nextTrack() {
+function getNextTrack() {
     var next = $(playing).next();
     return next;
 }
-function prevTrack() {
+function getPrevTrack() {
     var prev = $(playing).prev();
     return prev;
 }
@@ -76,7 +76,7 @@ var progressInterval = setInterval(function() {
 
 // Audio Player Events
 PLAYER.on('ended', function() {
-    nextTrack();
+    playTrack(getNextTrack());
 });
 PLAYER.on('pause', function() {
     CONTROLS.find('.play').removeClass('fa-pause').addClass('fa-play');
@@ -99,10 +99,14 @@ CONTROLS_PLAY.click(function() {
     }
 });
 CONTROLS_NEXT.click(function() {
-    playTrack(nextTrack());
+    playTrack(getNextTrack());
 });
 CONTROLS_PREV.click(function() {
-    playTrack(prevTrack());
+    if (p.currentTime < 5) {
+        playTrack(getPrevTrack());
+    } else {
+        playTrack(playing);
+    }
 });
 
 // Keyboard events
