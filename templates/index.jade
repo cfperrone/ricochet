@@ -1,9 +1,25 @@
 extends layout
 
 block content
-    h1 Ricochet
-
     audio.player(src='', preload='auto', volume='0')
+
+    .global-alerts
+        #global-success.global-alert.alert.alert-success
+        #global-error.global-alert.alert.alert-danger
+
+    nav.navbar.navbar-inverse.navbar-fixed-top(role='navigation')
+        .container-fluid
+            .navbar-header
+                a.navbar-brand(href='/') Ricochet
+            ul.nav.navbar-nav.navbar-right
+                li.dropdown
+                    a.dropdown-toggle(data-toggle='dropdown', href='#')
+                        i.fa.fa-lg.fa-fw.fa-gear
+                        i.fa.fa-lg.fa-fw.fa-caret-down
+                    ul.dropdown-menu(role='menu')
+                        li
+                            a#reindex(href='#') Reindex
+
 
     nav.navbar.navbar-inverse.navbar-fixed-bottom(role='navigation')
         .container-fluid

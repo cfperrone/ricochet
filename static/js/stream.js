@@ -9,6 +9,9 @@ var PLAYER = $('audio.player'),
     PROGRESS = $('.progress'),
     NOW_PLAYING = $('.now-playing'),
     DURATION = $('.controls .duration'),
+    REINDEX = $('#reindex'),
+    ALERT_SUCCESS = $('#global-success'),
+    ALERT_ERROR = $('#global-error'),
     playing = null,
     position = 0;
 
@@ -109,6 +112,19 @@ CONTROLS_PREV.click(function() {
     }
 });
 
+// Settings buttons
+REINDEX.click(function() {
+    $.post('/server/reindex', function(data) {
+        if (data == 'OK') {
+            alertSuccess("Reindexing started");
+        } else {
+            alertError("Reindexing failed");
+        }
+    }).fail(function() {
+        alertError("Reindexing failed");
+    });
+});
+
 // Keyboard events
 Mousetrap.bind('space', function() {
     CONTROLS_PLAY.trigger('click');
@@ -153,3 +169,12 @@ function formatSeconds(input) {
         return hours + ':' + minutes + ':' + seconds;
     }
 }
+
+function alertSuccess(message) {
+    ALERT_SUCCESS.html(message).fadeIn().delay(2000).fadeOut();
+}
+function alertError(message) {
+    ALERT_ERROR.html(message).fadeIn().delay(2000).fadeOut();
+}
+ALERT_SUCCESS.hide();
+ALERT_ERROR.hide();

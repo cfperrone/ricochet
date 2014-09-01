@@ -1,3 +1,8 @@
+body {
+    padding-top: 70px;
+    padding-bottom: 50px;
+}
+
 .play, .next, .prev {
     cursor: pointer;
 }
@@ -35,4 +40,13 @@
     }
     .controls .duration {
         color: white;
+    }
+
+.global-alerts {
+    text-align: center;
+    height: 0;
+}
+    .global-alerts .global-alert {
+        display: inline;
+        opacity: 0.99
     }
