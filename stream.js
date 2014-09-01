@@ -137,6 +137,7 @@ function updateIndex() {
                 };
                 // Get additional info from helper functions
                 track_data = getTrackNumbers(track_data, tags);
+                track_data = getAlternateTitle(track_data, tags);
 
                 // Check if the index already exists, otherwise create it
                 Track.findOrCreate({ id: id }, track_data)
@@ -187,6 +188,18 @@ function getTrackNumbers(data, tags) {
         if (parts.length > 1) {
             data.disc_total = parseInt(parts[1]);
         }
+    }
+
+    return data;
+}
+function getAlternateTitle(data, tags) {
+    if (data.title != null) {
+        return data;
+    }
+
+    var filetitle = path.basename(data.filename).match(/^\d+ (.*)\..*/);
+    if (filetitle != null && filetitle.length > 1) {
+        data.title = filetitle[1];
     }
 
     return data;
