@@ -65,7 +65,7 @@ app.get('/', function(req, res) {
         });
     });
 });
-app.all('/play/:id', function(req, res) {
+app.get('/play/:id', function(req, res) {
     req.connection.setTimeout(750000); // 15 minutes
 
     // Look up the track to get its filename
@@ -89,6 +89,11 @@ app.all('/play/:id', function(req, res) {
     .error(function(err) {
         console.log('Could not find file in index with id ' + id);
     });
+});
+app.post('/server/reindex', function(req, res) {
+    // Reindex the server
+    updateIndex();
+    res.send("OK");
 });
 
 // Index the library
