@@ -5,16 +5,47 @@ var express = require('express'),
     file = require('file'),
     path = require('path'),
     id3 = require('id3js'),
+    crypto = require('crypto'),
+    Sequelize = require('sequelize'),
     execFile = require('child_process').execFile;
 var app = express(),
-    library = [],
-    artists = { },
-    albums = { },
+    db = new Sequelize('ricochet', 'stream', 'lolwat'),
     valid_extensions = [ '.mp3', '.wav', '.m4a', '.ogg' ];
 
+// -- Database Configuration
+var Track = db.define('track', {
+    id: Sequelize.STRING(255),
+    filename: Sequelize.STRING(1024),
+    title: Sequelize.STRING(255),
+    artist: Sequelize.STRING(255),
+    album: Sequelize.STRING(255),
+    genre: Sequelize.STRING(255),
+    track_num: {
+        type: Sequelize.INTEGER,
+        defaultValue: 0,
+    },
+    track_total: {
+        type: Sequelize.INTEGER,
+        defaultValue: 0,
+    },
+    disc_num: {
+        type: Sequelize.INTEGER,
+        defaultValue: 0,
+    },
+    disc_total: {
+        type: Sequelize.INTEGER,
+        defaultValue: 0,
+    }
+}, {
+    timestamps: true,
+    createdAt: 'create_date',
+    updatedAt: 'update_date',
+    underscored: true,
+    freezeTableName: true,
+});
+
 // -- Stream Configuration
-var library_path = '/home/cperrone/music/',
-    library_file = library_path + 'library.json';
+var library_path = '/home/cperrone/music/';
 
 // -- Setup Express
 app.use(express.static(__dirname + '/static/'));
@@ -22,75 +53,142 @@ app.use(express.bodyParser());
 app.set('views', __dirname + '/templates/');
 app.set('view engine', 'jade');
 
+// -- Express endpoints
 app.get('/', function(req, res) {
-    res.render('index', {
-        pageTitle: 'Streaming Library',
-        library: library
+    Track.findAll({
+        order: 'album ASC, track_num ASC, title ASC'
+    })
+    .success(function(tracks) {
+        res.render('index', {
+            pageTitle: 'Ricochet',
+            library: tracks
+        });
     });
 });
-
-// -- Non-static Express Endpoints
-app.all('/play/:track', function(req, res) {
+app.all('/play/:id', function(req, res) {
     req.connection.setTimeout(750000); // 15 minutes
 
-    var filename = library[req.params['track']]['path'];
-    console.log("Reading file " + filename);
-    try {
-        fs.readFile(filename, function(err, data) {
-            if (err) throw err;
-            res.type('audio/mpeg');
-            res.send(data);
-        });
-    } catch (e) {
-        console.error('Could not find file');
-    }
-});
-
-function getFullLibraryByAlbum() {
-    var tmp_lib = [];
-    Object.keys(albums).forEach(function(key) {
-        var album = albums[key];
-        Object.keys(album).forEach(function(track_num) {
-            var song_id = album[track_num];
-            tmp_lib.push(library[song_id]);
-        });
-    });
-    return tmp_lib;
-}
-function getFullLibraryByArtist() {
-    var tmp_lib = [];
-    Object.keys(artists).forEach(function(key) {
-        var artist = artists[key];
-        artist.forEach(function(track_num, j) {
-            tmp_lib.push(library[track_num]);
-        });
-    });
-    return tmp_lib;
-}
-
-// -- Read and parse the library file
-var library_data = fs.readFileSync(library_file),
-    full_library = JSON.parse(library_data),
-    songs = full_library.songs,
-    artists = full_library.artists,
-    albums = full_library.albums;
-
-// -- Go through each song, add more path info and add to node library
-songs.forEach(function(song, i) {
-    var filename = song.path;
-
-    library[i] = {
-        path: filename,
-        base: path.basename(filename),
-        rel: path.relative(library_path, filename),
-        tags: {
-            title: song.title,
-            artist: song.artist,
-            album: song.album,
-            track: song.track,
-            duration: song.duration
+    // Look up the track to get its filename
+    var id = req.params['id'];
+    Track.find({
+        where: {
+            id: id
         }
-    };
+    })
+    .success(function(track) {
+        try {
+            fs.readFile(track.filename, function(err, data) {
+                if (err) throw err;
+                res.type('audio/mpeg');
+                res.send(data);
+            });
+        } catch (e) {
+            console.log('Could not find file ' + track.filename);
+        }
+    })
+    .error(function(err) {
+        console.log('Could not find file in index with id ' + id);
+    });
 });
 
+// Index the library
+updateIndex();
+// Start the server
 app.listen(8081);
+
+// -- Indexes the music library
+function updateIndex() {
+    // Use `find` to get a list of all files recursively in library_path
+    execFile('find', [ library_path, '-type', 'f' ], function(err, stdout, stderr) {
+        var file_list = stdout.split('\n');
+        file_list.pop(); // removes current dir from file_list
+        file_list.forEach(function(filename, i) {
+            console.log("Indexing " + filename);
+
+            // bail if we've found an invalid extension
+            var extension = path.extname(filename).toLowerCase();
+            if (valid_extensions.indexOf(extension) < 0) {
+                console.log("Invalid extension \"" + extension + "\" found");
+                return;
+            }
+
+            var fd = fs.createReadStream(filename);
+            var hash = crypto.createHash('sha1');
+            hash.setEncoding('hex');
+
+            fd.on('end', function() {
+                hash.end();
+                var id = hash.read();
+
+                // Get id3 tags
+                id3({ file: filename, type: id3.OPEN_LOCAL }, function (err, tags) {
+                    if (err) {
+                        console.log(err);
+                        return;
+                    }
+
+                    // Start building a model of metadata
+                    var track_data = {
+                        filename: filename,
+                        title: tags.title,
+                        artist: tags.artist,
+                        album: tags.album,
+                        genre: tags.genre,
+                    };
+                    // Get additional info from helper functions
+                    track_data = getTrackNumbers(track_data, tags);
+
+                    // Check if the index already exists, otherwise create it
+                    Track.findOrCreate({ id: id }, track_data)
+                    .success(function(track, created) {
+                        if (created) {
+                            console.log("Created " + track.title);
+                        } else {
+                            console.log("Indexed " + track.title);
+                        }
+                    })
+                    .error(function(err) {
+                        console.log(err);
+                    });
+                });
+            });
+
+            fd.pipe(hash);
+
+        });
+    });
+}
+
+// -- Indexer helper functions
+function getTrackNumbers(data, tags) {
+    data.track_num = 0;
+    data.track_total = 0;
+    data.disc_num = 0;
+    data.disc_total = 0;
+
+    var filetrack = path.basename(data.filename).match(/^(\d+) .*/);
+    var v1track = tags.v1.track;
+    var v2track = tags.v2.track;
+    var v2disc = tags.v2.disc;
+
+    // Check the filename first
+    if (filetrack != null && filetrack.length > 1) {
+        data.track_num = parseInt(filetrack[1]);
+    }
+    if (v1track != null) {
+        data.track_num = v1track;
+    }
+    if (v2track != null) {
+        var parts = v2track.split('/');
+        data.track_num = parseInt(parts[0]);
+        data.track_total = parseInt(parts[1]);
+    }
+    if (v2disc != null) {
+        var parts = v2disc.split('/');
+        data.disc_num = parseInt(parts[0]);
+        data.disc_total = parseInt(parts[1]);
+    }
+
+    return data;
+}
+

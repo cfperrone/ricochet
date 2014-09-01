@@ -22,16 +22,12 @@ block content
     table.table.table-striped.table-hover.table-responsive.library
         each track, index in library
             if track
-                if track.tags.title
-                    tr.track(href="#", data-track_id=index, data-track_title=track.tags.title, data-track_artist=track.tags.artist)
-                        td.col-md-4= track.tags.title
-                        td.col-md-1= track.tags.duration
-                        td.col-md-2= track.tags.artist
-                        td.col-md-2= track.tags.album
-                        td.col-md-1= track.tags.track[0]
-                else
-                    tr.track(href="#", data-track_id=index)
-                        td.col-md-12 track.base
+                tr.track(href="#", data-track_id=track.id, data-track_title=track.title, data-track_artist=track.artist)
+                    td.col-md-4= track.title
+                    td.col-md-1= track.duration
+                    td.col-md-2= track.artist
+                    td.col-md-2= track.album
+                    td.col-md-1= track.track_num
 
     script(type='text/javascript', src='/js/stream.js')
 
