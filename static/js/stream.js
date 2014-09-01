@@ -119,10 +119,10 @@ function setControlsInfo(obj) {
         var track_title = obj.data('track_title'),
             track_artist = obj.data('track_artist');
     }
-    NOW_PLAYING.fadeOut(500, function() {
+    NOW_PLAYING.fadeOut(250, function() {
         $(this).find('.title').html(track_title);
         $(this).find('.artist').html(track_artist);
-        $(this).fadeIn(500);
+        $(this).fadeIn(250);
     });
 
     // Update the row color for the currently playing track
