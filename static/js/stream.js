@@ -136,8 +136,8 @@ function setControlsInfo(obj) {
         var track_title = "",
             track_artist = "";
     } else {
-        var track_title = obj.data('track_title'),
-            track_artist = obj.data('track_artist');
+        var track_title = obj.find('.title').html(),
+            track_artist = obj.find('.artist').html();
     }
     NOW_PLAYING.fadeOut(250, function() {
         $(this).find('.title').html(track_title);

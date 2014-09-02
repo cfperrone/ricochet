@@ -38,12 +38,12 @@ block content
     table.table.table-striped.table-hover.table-responsive.library
         each track, index in library
             if track
-                tr.track(href="#", data-track_id=track.id, data-track_title=track.title, data-track_artist=track.artist)
-                    td.col-md-4= track.title
-                    td.col-md-1= track.duration
-                    td.col-md-2= track.artist
-                    td.col-md-2= track.album
-                    td.col-md-1= track.track_num
+                tr.track(href="#", data-track_id=track.id)
+                    td.col-md-4.title= track.title
+                    td.col-md-1.duration= track.duration
+                    td.col-md-2.artist= track.artist
+                    td.col-md-2.album= track.album
+                    td.col-md-1.track_num= track.track_num
 
     script(type='text/javascript', src='/js/stream.js')
 
