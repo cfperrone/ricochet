@@ -128,6 +128,7 @@ REINDEX.click(function() {
 // Keyboard events
 Mousetrap.bind('space', function() {
     CONTROLS_PLAY.trigger('click');
+    return false;
 });
 
 // places the track name into the floating control module
