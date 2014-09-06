@@ -94,6 +94,30 @@ app.get('/play/:id', function(req, res) {
         console.log('Could not find file in index with id ' + id);
     });
 });
+app.post('/play/:id/:action', function(req, res) {
+    var id = req.params['id'],
+        action = req.params['action'];
+    Track.find({
+        where: {
+            id: id
+        }
+    })
+    .success(function(track) {
+        if (action == 'increment') {
+            track.play_count++;
+            track.save()
+            .success(function(track) {
+                res.render('row', {
+                    track: track
+                });
+            });
+
+        }
+    })
+    .error(function(err) {
+        console.log('Could not find file in index with id ' + id);
+    });
+});
 app.post('/server/reindex', function(req, res) {
     // Reindex the server
     updateIndex();

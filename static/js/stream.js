@@ -57,6 +57,19 @@ function stopPlayback() {
     $('.library tr.info').removeClass('info');
 }
 
+function doTrackAction(obj, action) {
+    if (obj.length == 0) {
+        return;
+    }
+
+    var url = '/play/' + obj.data('track_id') + '/' + action;
+
+    // Perform the action and replace the row with a new render
+    $.post(url, function(data) {
+        obj.html($(data).html());
+    });
+}
+
 // every 250ms, update the progress bar and duration clock
 var progressInterval = setInterval(function() {
     var bar = PROGRESS,
@@ -79,17 +92,19 @@ var progressInterval = setInterval(function() {
 
 // Audio Player Events
 PLAYER.on('ended', function() {
+    // Increment play count for finished track
+    doTrackAction(playing, 'increment');
+
     playTrack(getNextTrack());
+
+    PROGRESS.css('width', '0%');
+    CONTROLS.find('.play').removeClass('fa-pause').addClass('fa-play');
 });
 PLAYER.on('pause', function() {
     CONTROLS.find('.play').removeClass('fa-pause').addClass('fa-play');
 });
 PLAYER.on('play', function() {
     CONTROLS.find('.play').removeClass('fa-play').addClass('fa-pause');
-});
-PLAYER.on('ended', function() {
-    PROGRESS.css('width', '0%');
-    CONTROLS.find('.play').removeClass('fa-pause').addClass('fa-play');
 });
 
 // Control button events
