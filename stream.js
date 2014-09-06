@@ -35,6 +35,10 @@ var Track = db.define('track', {
     disc_total: {
         type: Sequelize.INTEGER,
         defaultValue: 0,
+    },
+    play_count: {
+        type: Sequelize.INTEGER,
+        defaultValue: 0,
     }
 }, {
     timestamps: true,
@@ -96,8 +100,12 @@ app.post('/server/reindex', function(req, res) {
     res.send("OK");
 });
 
-// Index the library
-updateIndex();
+// Sync the db schema
+db.sync()
+.success(function() {
+    // Index the library
+    updateIndex();
+});
 // Start the server
 app.listen(8081);
 
