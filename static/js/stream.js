@@ -6,6 +6,9 @@ var PLAYER = $('audio.player'),
     CONTROLS_PLAY = CONTROLS.find('.play'),
     CONTROLS_NEXT = CONTROLS.find('.next'),
     CONTROLS_PREV = CONTROLS.find('.prev'),
+    CONTROLS_VOLUME = CONTROLS.find('.volume'),
+    VOLUME_BAR = CONTROLS.find('.volumebar'),
+    VOLUME_HANDLE = CONTROLS.find('.volumehandle'),
     PROGRESS = $('.progress'),
     NOW_PLAYING = $('.now-playing'),
     DURATION = $('.controls .duration'),
@@ -13,6 +16,7 @@ var PLAYER = $('audio.player'),
     ALERT_SUCCESS = $('#global-success'),
     ALERT_ERROR = $('#global-error'),
     playing = null,
+    changing_volume = false,
     position = 0;
 
 $('.library .track').click(function() {
@@ -56,6 +60,23 @@ function stopPlayback() {
     // Clear the now playing row
     $('.library tr.info').removeClass('info');
 }
+function setVolume(perc) {
+    // Set volume on audio element
+    p.volume = perc;
+
+    // Set volume icon
+    CONTROLS_VOLUME.removeClass('fa-volume-down')
+                   .removeClass('fa-volume-up')
+                   .removeClass('fa-volume-off');
+    if (perc > .65) {
+        CONTROLS_VOLUME.addClass('fa-volume-up');
+    } else if (perc > .05) {
+        CONTROLS_VOLUME.addClass('fa-volume-down');
+    } else {
+        CONTROLS_VOLUME.addClass('fa-volume-off');
+    }
+}
+setVolume(1);
 
 function doTrackAction(obj, action) {
     if (obj.length == 0) {
@@ -125,6 +146,45 @@ CONTROLS_PREV.click(function() {
     } else {
         playTrack(playing);
     }
+});
+CONTROLS_VOLUME.click(function() {
+    VOLUME_BAR.toggle(0, function() {
+        VOLUME_BAR.css('position', 'absolute');
+    });
+});
+VOLUME_BAR.hide();
+
+// Volume bar events
+VOLUME_HANDLE.on('mousedown', function() {
+    changing_volume = true;
+});
+$('body').on('mouseup', function() {
+    if (changing_volume) {
+        changing_volume = false;
+    }
+});
+VOLUME_BAR.on('mousemove', function(event) {
+    if (!changing_volume) {
+        return false;
+    }
+
+    var posY = event.pageY - 35,
+        height = VOLUME_BAR.height() - 5,
+        minY = VOLUME_BAR.offset().top - 5,
+        maxY = minY + height;
+
+    if (posY >= minY && posY <= maxY) {
+        var offset = posY - minY,
+            perc = 1 - offset/height;
+
+        // Set position of handle
+        VOLUME_HANDLE.css('margin-top', (offset - 5) + 'px');
+
+        // Set volume of audio element
+        setVolume(perc);
+    }
+
+    return false;
 });
 
 // Settings buttons
