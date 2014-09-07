@@ -41,8 +41,16 @@ block content
             .progress
 
     table.table.table-striped.table-hover.table-responsive.table-condensed.library
-        each track, index in library
-            if track
+        thead
+            th Title
+            th Duration
+            th Artist
+            th Album
+            th Track
+            th Plays
+            th &nbsp;
+        tbody
+            each track, index in library
                 include row.jade
 
     script(type='text/javascript', src='/js/stream.js')

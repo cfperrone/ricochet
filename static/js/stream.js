@@ -15,9 +15,15 @@ var PLAYER = $('audio.player'),
     REINDEX = $('#reindex'),
     ALERT_SUCCESS = $('#global-success'),
     ALERT_ERROR = $('#global-error'),
+    TRACK_DROPDOWN = $('.track .dropdown-toggle'),
+    TRACK_EDIT = $('.track .edit-track'),
+    TRACK_REINDEX = $('.track .reindex-track'),
     playing = null,
     changing_volume = false,
     position = 0;
+
+// Initialize some bootstrap stuff
+$('.dropdown-toggle').dropdown();
 
 $('.library .track').click(function() {
     playTrack($(this));
@@ -187,7 +193,7 @@ VOLUME_BAR.on('mousemove', function(event) {
     return false;
 });
 
-// Settings buttons
+// Global settings buttons
 REINDEX.click(function() {
     $.post('/server/reindex', function(data) {
         if (data == 'OK') {
@@ -198,6 +204,11 @@ REINDEX.click(function() {
     }).fail(function() {
         alertError("Reindexing failed");
     });
+});
+
+// Track settings buttons
+TRACK_DROPDOWN.click(function(e) {
+    e.stopPropagation();
 });
 
 // Keyboard events

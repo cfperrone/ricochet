@@ -5,4 +5,12 @@ tr.track(href="#", data-track_id=track.id)
     td.col-md-2.album= track.album
     td.col-md-1.track_num= track.track_num
     td.col-md-1.play_count= track.play_count
+    td.col-md-1.edit
+        .btn-group
+            button.btn.btn-default.btn-xs.dropdown-toggle(type='button', data-toggle='dropdown')
+                i.fa.fa-fw.fa-caret-down
+            ul.dropdown-menu.dropdown-menu-right(role='menu')
+                li
+                    a.edit-track(href='#' data-track_id=track.id) Edit
+                    a.reindex-track(href='#' data-track_id=track.id) Reindex
 
