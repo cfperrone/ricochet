@@ -94,13 +94,23 @@ app.get('/play/:id', function(req, res) {
         console.log('Could not find file in index with id ' + id);
     });
 });
+app.get('/play/:id/:action', function(req, res) {
+    var id = req.params['id'],
+        action = req.params['action'];
+    Track.find({
+        where: { id: id }
+    })
+    .success(function(track) {
+        if (action == 'data') {
+            res.json(track);
+        }
+    });
+});
 app.post('/play/:id/:action', function(req, res) {
     var id = req.params['id'],
         action = req.params['action'];
     Track.find({
-        where: {
-            id: id
-        }
+        where: { id: id }
     })
     .success(function(track) {
         if (action == 'increment') {
@@ -111,7 +121,19 @@ app.post('/play/:id/:action', function(req, res) {
                     track: track
                 });
             });
-
+        } else if (action == 'edit') {
+            track.title = req.body['title'];
+            track.artist = req.body['artist'];
+            track.album = req.body['album'];
+            track.genre = req.body['genre'];
+            track.track_num = req.body['track_num'];
+            console.log("Updating track with new title " + track.title);
+            track.save()
+            .success(function(t) {
+                res.render('row', {
+                    track: t
+                });
+            });
         }
     })
     .error(function(err) {

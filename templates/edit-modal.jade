@@ -1,0 +1,33 @@
+#edit-modal.modal.fade(tab-index='-1')
+    .modal-dialog
+        .modal-content
+            .modal-header
+                button.close(type='button', data-dismiss='modal') &times;
+                h4.modal-title Edit Track
+            .modal-body
+                form.form-horizontal
+                    .form-group
+                        label.col-sm-2.control-label(for='edit-title') Title
+                        .col-sm-9
+                            input#edit-title.form-control(type='type', name='title')
+                    .form-group
+                        label.col-sm-2.control-label(for='edit-artist') Artist
+                        .col-sm-9
+                            input#edit-artist.form-control(type='text', name='artist')
+                    .form-group
+                        label.col-sm-2.control-label(for='edit-album') Album
+                        .col-sm-9
+                            input#edit-album.form-control(type='text', name='album')
+                    .form-group
+                        label.col-sm-2.control-label(for='edit-genre') Genre
+                        .col-sm-9
+                            input#edit-genre.form-control(type='text', name='genre')
+                    .form-group
+                        label.col-sm-2.control-label(for='edit-track-num') Track
+                        .col-sm-2
+                            input#edit-track-num.form-control(type='text', name='track_num')
+                        .col-sm-2
+                            input#edit-track-of.form-control(type='text', name='track_total')
+            .modal-footer
+                button.btn.btn-default(type='button', data-dismiss='modal') Close
+                button.submit.btn.btn-default(type='button') Save Changes

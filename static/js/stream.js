@@ -18,12 +18,15 @@ var PLAYER = $('audio.player'),
     TRACK_DROPDOWN = $('.track .dropdown-toggle'),
     TRACK_EDIT = $('.track .edit-track'),
     TRACK_REINDEX = $('.track .reindex-track'),
+    MODAL_EDIT = $('#edit-modal'),
+    MODAL_EDIT_SUBMIT = $('#edit-modal .submit'),
     playing = null,
     changing_volume = false,
     position = 0;
 
 // Initialize some bootstrap stuff
 $('.dropdown-toggle').dropdown();
+MODAL_EDIT.modal({ show: false });
 
 $('.library .track').click(function() {
     playTrack($(this));
@@ -84,16 +87,21 @@ function setVolume(perc) {
 }
 setVolume(1);
 
-function doTrackAction(obj, action) {
+function doTrackAction(obj, action, data) {
     if (obj.length == 0) {
         return;
+    }
+
+    if (typeof data == 'undefined') {
+        data = { };
     }
 
     var url = '/play/' + obj.data('track_id') + '/' + action;
 
     // Perform the action and replace the row with a new render
-    $.post(url, function(data) {
-        obj.html($(data).html());
+    $.post(url, data, function(returnData) {
+        obj.html($(returnData).html());
+        initTrackDropdownEvents(obj);
     });
 }
 
@@ -207,8 +215,49 @@ REINDEX.click(function() {
 });
 
 // Track settings buttons
-TRACK_DROPDOWN.click(function(e) {
-    e.stopPropagation();
+function initTrackDropdownEvents(obj) {
+    // Re-initialize bootstrap dropdowns
+    obj.find('.dropdown-toggle').dropdown();
+
+    obj.find('.dropdown-toggle').click(function(e) {
+        e.stopPropagation();
+    });
+    obj.find('.edit-track').click(function(e) {
+        e.stopPropagation();
+
+        // Populate track info
+        var id = $(this).data('track_id');
+        $.get('/play/' + id + '/data', function(data) {
+            // Fill in the modal information
+            MODAL_EDIT.find('#edit-title').val(data.title);
+            MODAL_EDIT.find('#edit-artist').val(data.artist);
+            MODAL_EDIT.find('#edit-album').val(data.album);
+            MODAL_EDIT.find('#edit-genre').val(data.genre);
+            MODAL_EDIT.find('#edit-track-num').val(data.track_num);
+            MODAL_EDIT.find('#edit-track-of').val(data.track_total);
+
+            // Add the track id to the button
+            MODAL_EDIT_SUBMIT.data('track_id', id);
+
+            // Open the modal
+            MODAL_EDIT.modal('show');
+        })
+        .fail(function() {
+            alertError("Could not retrieve track info!");
+        });
+    });
+}
+initTrackDropdownEvents($('.library .track'));
+MODAL_EDIT_SUBMIT.click(function() {
+    // Save the data & update the row
+    var form = MODAL_EDIT.find('form'),
+        data = form.serialize(),
+        id = $(this).data('track_id'),
+        track = $('.library .track[data-track_id=\'' + id + '\']');
+    doTrackAction(track, 'edit', data);
+
+    // Close the modal
+    MODAL_EDIT.modal('hide');
 });
 
 // Keyboard events
