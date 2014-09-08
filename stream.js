@@ -4,8 +4,9 @@ var express = require('express'),
     jade = require('jade'),
     file = require('file'),
     path = require('path'),
-    id3 = require('id3js'),
+    mm = require('musicmetadata'),
     crypto = require('crypto'),
+    moment = require('moment'),
     Sequelize = require('sequelize'),
     execFile = require('child_process').execFile;
 var app = express(),
@@ -17,9 +18,22 @@ var Track = db.define('track', {
     id: Sequelize.STRING(255),
     filename: Sequelize.STRING(1024),
     title: Sequelize.STRING(255),
-    artist: Sequelize.STRING(255),
-    album: Sequelize.STRING(255),
-    genre: Sequelize.STRING(255),
+    duration: {
+        type: Sequelize.INTEGER,
+        default_value: 0,
+    },
+    artist: {
+        type: Sequelize.STRING(255),
+        default_value: '',
+    },
+    album: {
+        type: Sequelize.STRING(255),
+        default_value: '',
+    },
+    genre: {
+        type: Sequelize.STRING(255),
+        default_value: '',
+    },
     track_num: {
         type: Sequelize.INTEGER,
         defaultValue: 0,
@@ -46,6 +60,31 @@ var Track = db.define('track', {
     updatedAt: 'update_date',
     underscored: true,
     freezeTableName: true,
+    instanceMethods: {
+        getDuration: function() {
+            var m = moment().seconds(this.duration);
+            if (this.duration > 3599) {
+                return m.format('H:mm:ss');
+            } else {
+                return m.format('m:ss');
+            }
+        },
+        // Enhances the db instance in preparation of presentation
+        hydrate: function() {
+            // Add a pretty duration string
+            this.durationString = this.getDuration();
+
+            return this;
+        }
+    },
+    classMethods: {
+        hydrateMultiple: function(tracks) {
+            for (var i = 0; i < tracks.length; i++) {
+                tracks[i] = tracks[i].hydrate();
+            }
+            return tracks;
+        }
+    }
 });
 
 // -- Stream Configuration
@@ -63,6 +102,8 @@ app.get('/', function(req, res) {
         order: 'album ASC, track_num ASC, title ASC'
     })
     .success(function(tracks) {
+        tracks = Track.hydrateMultiple(tracks);
+
         res.render('index', {
             pageTitle: 'Ricochet',
             library: tracks
@@ -75,9 +116,7 @@ app.get('/play/:id', function(req, res) {
     // Look up the track to get its filename
     var id = req.params['id'];
     Track.find({
-        where: {
-            id: id
-        }
+        where: { id: id }
     })
     .success(function(track) {
         try {
@@ -102,7 +141,7 @@ app.get('/play/:id/:action', function(req, res) {
     })
     .success(function(track) {
         if (action == 'data') {
-            res.json(track);
+            res.json(track.hydrate());
         }
     });
 });
@@ -171,27 +210,25 @@ function updateIndex() {
                 return;
             }
 
-            var fd = fs.createReadStream(filename);
             var id = crypto.createHash('md5').update(filename).digest('hex');
+            var parser = mm(fs.createReadStream(filename), { duration: true });
 
             // Get id3 tags
-            id3({ file: filename, type: id3.OPEN_LOCAL }, function (err, tags) {
-                if (err) {
-                    console.log(err);
-                    return;
-                }
-
+            //id3({ file: filename, type: id3.OPEN_LOCAL }, function (err, tags) {
+            parser.on('metadata', function(tags) {
                 // Start building a model of metadata
                 var track_data = {
                     filename: filename,
-                    title: tags.title,
-                    artist: tags.artist,
-                    album: tags.album,
-                    genre: tags.genre,
+                    title: getTitle(tags.title, filename),
+                    duration: tags.duration,
+                    artist: tagOrDefault(tags.artist, ''),
+                    album: tagOrDefault(tags.album, ''),
+                    genre: tagOrDefault(tags.genre, ''),
+                    track_num: tags.track.no,
+                    track_total: tags.track.of,
+                    disc_num: tags.disk.no,
+                    disc_total: tags.disk.of
                 };
-                // Get additional info from helper functions
-                track_data = getTrackNumbers(track_data, tags);
-                track_data = getAlternateTitle(track_data, tags);
 
                 // Check if the index already exists, otherwise create it
                 Track.findOrCreate({ id: id }, track_data)
@@ -206,56 +243,32 @@ function updateIndex() {
                     console.log(err);
                 });
             });
+
+            parser.on('done', function(err) {
+                if (err) {
+                    console.log(err);
+                    stream.destroy();
+                }
+            });
         });
     });
 }
 
 // -- Indexer helper functions
-function getTrackNumbers(data, tags) {
-    data.track_num = 0;
-    data.track_total = 0;
-    data.disc_num = 0;
-    data.disc_total = 0;
-
-    var filetrack = path.basename(data.filename).match(/^(\d+) .*/);
-    var v1track = tags.v1.track;
-    var v2track = tags.v2.track;
-    var v2disc = tags.v2.disc;
-
-    // Check the filename first
-    if (filetrack != null && filetrack.length > 1) {
-        data.track_num = parseInt(filetrack[1]);
-    }
-    if (v1track != null) {
-        data.track_num = parseInt(v1track);
-    }
-    if (v2track != null) {
-        var parts = v2track.split('/');
-        data.track_num = parseInt(parts[0]);
-        if (parts.length > 1) {
-            data.track_total = parseInt(parts[1]);
-        }
-    }
-    if (v2disc != null) {
-        var parts = v2disc.split('/');
-        data.disc_num = parseInt(parts[0]);
-        if (parts.length > 1) {
-            data.disc_total = parseInt(parts[1]);
-        }
-    }
-
-    return data;
-}
-function getAlternateTitle(data, tags) {
-    if (data.title != null) {
-        return data;
+function getTitle(title, filename) {
+    if (!(title == null || title == '')) {
+        return title;
     }
 
     var filetitle = path.basename(data.filename).match(/^\d+ (.*)\..*/);
     if (filetitle != null && filetitle.length > 1) {
-        data.title = filetitle[1];
+        return filetitle[1];
     }
-
-    return data;
+}
+function tagOrDefault(tag, def) {
+    if (tag == '') {
+        return def;
+    }
+    return tag;
 }
 
