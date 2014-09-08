@@ -229,15 +229,12 @@ function initTrackDropdownEvents(obj) {
         var id = $(this).data('track_id');
         $.get('/play/' + id + '/data', function(data) {
             // Fill in the modal information
-            MODAL_EDIT.find('#edit-title').val(data.title);
-            MODAL_EDIT.find('#edit-artist').val(data.artist);
-            MODAL_EDIT.find('#edit-album').val(data.album);
-            MODAL_EDIT.find('#edit-genre').val(data.genre);
-            MODAL_EDIT.find('#edit-year').val(data.year);
-            MODAL_EDIT.find('#edit-track-num').val(data.track_num);
-            MODAL_EDIT.find('#edit-track-of').val(data.track_total);
-            MODAL_EDIT.find('#edit-disc-num').val(data.disc_num);
-            MODAL_EDIT.find('#edit-disc-of').val(data.disc_total);
+            MODAL_EDIT.find("input[type='text']").each(function() {
+                var key = $(this).attr('name');
+                if (key in data) {
+                    $(this).val(data[key]);
+                }
+            });
 
             // Add the track id to the button
             MODAL_EDIT_SUBMIT.data('track_id', id);
