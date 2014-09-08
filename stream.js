@@ -34,6 +34,10 @@ var Track = db.define('track', {
         type: Sequelize.STRING(255),
         default_value: '',
     },
+    year: {
+        type: Sequelize.STRING(16),
+        default_value: '',
+    },
     track_num: {
         type: Sequelize.INTEGER,
         defaultValue: 0,
@@ -165,7 +169,11 @@ app.post('/play/:id/:action', function(req, res) {
             track.artist = req.body['artist'];
             track.album = req.body['album'];
             track.genre = req.body['genre'];
+            track.year = req.body['year'];
             track.track_num = req.body['track_num'];
+            track.track_total = req.body['track_total'];
+            track.disc_num = req.body['disc_num'];
+            track.disc_total = req.body['disc_total'];
             console.log("Updating track with new title " + track.title);
             track.save()
             .success(function(t) {
@@ -224,6 +232,7 @@ function updateIndex() {
                     artist: tagOrDefault(tags.artist, ''),
                     album: tagOrDefault(tags.album, ''),
                     genre: tagOrDefault(tags.genre, ''),
+                    year: tagOrDefault(tags.year, ''),
                     track_num: tags.track.no,
                     track_total: tags.track.of,
                     disc_num: tags.disk.no,

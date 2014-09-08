@@ -233,8 +233,11 @@ function initTrackDropdownEvents(obj) {
             MODAL_EDIT.find('#edit-artist').val(data.artist);
             MODAL_EDIT.find('#edit-album').val(data.album);
             MODAL_EDIT.find('#edit-genre').val(data.genre);
+            MODAL_EDIT.find('#edit-year').val(data.year);
             MODAL_EDIT.find('#edit-track-num').val(data.track_num);
             MODAL_EDIT.find('#edit-track-of').val(data.track_total);
+            MODAL_EDIT.find('#edit-disc-num').val(data.disc_num);
+            MODAL_EDIT.find('#edit-disc-of').val(data.disc_total);
 
             // Add the track id to the button
             MODAL_EDIT_SUBMIT.data('track_id', id);

@@ -23,11 +23,21 @@
                         .col-sm-9
                             input#edit-genre.form-control(type='text', name='genre')
                     .form-group
+                        label.col-sm-2.control-label(for='edit-year') Year
+                        .col-sm-2
+                            input#edit-year.form-control(type='text', name='year')
+                    .form-group
                         label.col-sm-2.control-label(for='edit-track-num') Track
                         .col-sm-2
                             input#edit-track-num.form-control(type='text', name='track_num')
                         .col-sm-2
                             input#edit-track-of.form-control(type='text', name='track_total')
+                    .form-group
+                        label.col-sm-2.control-label(for='edit-disc-num') Disc
+                        .col-sm-2
+                            input#edit-disc-num.form-control(type='text', name='disc_num')
+                        .col-sm-2
+                            input#edit-disc-of.form-control(type='text', name='disc_total')
             .modal-footer
                 button.btn.btn-default(type='button', data-dismiss='modal') Close
                 button.submit.btn.btn-default(type='button') Save Changes
