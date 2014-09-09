@@ -266,20 +266,24 @@ Mousetrap.bind('space', function() {
     return false;
 });
 
-// places the track name into the floating control module
+// Adds track metadata to the bottom nav, highlights track row and more
 function setControlsInfo(obj) {
     if ($.isEmptyObject(obj)) {
         var track_title = "",
-            track_artist = "";
+            track_artist = "",
+            title = "";
     } else {
         var track_title = obj.find('.title').html(),
-            track_artist = obj.find('.artist').html();
+            track_artist = obj.find('.artist').html(),
+            title = track_artist + " - " + track_title;
     }
     NOW_PLAYING.fadeOut(250, function() {
         $(this).find('.title').html(track_title);
         $(this).find('.artist').html(track_artist);
         $(this).fadeIn(250);
     });
+
+    setPageTitle(title);
 
     // Update the row color for the currently playing track
     $('.library tr.info').removeClass('info');
@@ -303,6 +307,17 @@ function formatSeconds(input) {
         return minutes + ':' + seconds;
     } else {
         return hours + ':' + minutes + ':' + seconds;
+    }
+}
+
+function setPageTitle(title) {
+    var e = $('head title'),
+        tail = 'Ricochet';
+
+    if (title == null || title == '') {
+        e.html(tail);
+    } else {
+        e.html(title + ' | ' + tail);
     }
 }
 
