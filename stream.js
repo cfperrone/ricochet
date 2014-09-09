@@ -66,7 +66,7 @@ var Track = db.define('track', {
     freezeTableName: true,
     instanceMethods: {
         getDuration: function() {
-            var m = moment().seconds(this.duration);
+            var m = moment.unix(parseInt(this.duration));
             if (this.duration > 3599) {
                 return m.format('H:mm:ss');
             } else {
@@ -178,7 +178,7 @@ app.post('/play/:id/:action', function(req, res) {
             track.save()
             .success(function(t) {
                 res.render('row', {
-                    track: t
+                    track: t.hydrate(),
                 });
             });
         }
