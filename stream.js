@@ -161,7 +161,7 @@ app.post('/play/:id/:action', function(req, res) {
             track.save()
             .success(function(track) {
                 res.render('row', {
-                    track: track
+                    track: track.hydrate()
                 });
             });
         } else if (action == 'edit') {
