@@ -1,0 +1,41 @@
+@font-face {
+    font-family: 'RicochetFont';
+    src: url('../fonts/Ricochet.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+.rf {
+  display: inline-block;
+  font: normal normal normal 14px/1 RicochetFont;
+  font-size: inherit;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.rf-lg {
+  font-size: 1.33333333em;
+  line-height: 0.75em;
+  vertical-align: -15%;
+}
+.rf-2x {
+  font-size: 2em;
+}
+.rf-3x {
+  font-size: 3em;
+}
+.rf-4x {
+  font-size: 4em;
+}
+.rf-5x {
+  font-size: 5em;
+}
+.rf-fw {
+  width: 1.28571429em;
+  text-align: center;
+}
+
+/* The fonts begin... */
+.rf-explosion:before {
+  content: "A";
+}

@@ -3,6 +3,29 @@ body {
     padding-bottom: 50px;
 }
 
+.brand {
+    float: left;
+    height: 50px;
+    padding: 15px 0;
+    color: white;
+}
+    .brand .brand-icon {
+        margin-top: -20px;
+        padding-right: 15px;
+        font-size: 2.7em;
+        float: left;
+    }
+    .brand .brand-text {
+        margin-top: -5px;
+        font-size: 1.6em;
+        font-weight: bold;
+        float: left;
+    }
+    .brand a {
+        color: white;
+        text-decoration: none;
+    }
+
 .play, .next, .prev {
     cursor: pointer;
 }
