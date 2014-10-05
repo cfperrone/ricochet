@@ -24,11 +24,12 @@ block content
             ul.nav.navbar-nav.navbar-right
                 li.dropdown
                     a.dropdown-toggle(data-toggle='dropdown', href='#')
-                        i.fa.fa-lg.fa-fw.fa-gear
+                        span= user.username
                         i.fa.fa-lg.fa-fw.fa-caret-down
                     ul.dropdown-menu(role='menu')
                         li
                             a#reindex(href='#') Reindex
+                            a(href='/logout') Logout
 
 
     nav.navbar.navbar-inverse.navbar-fixed-bottom(role='navigation')

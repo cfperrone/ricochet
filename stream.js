@@ -9,9 +9,12 @@ var express = require('express'),
     moment = require('moment'),
     Sequelize = require('sequelize'),
     execFile = require('child_process').execFile;
+    passport = require('passport'),
+    LocalStrategy = require('passport-local').Strategy;
 var app = express(),
     db = new Sequelize('ricochet', 'stream', 'lolwat'),
-    valid_extensions = [ '.mp3', '.wav', '.m4a', '.ogg' ];
+    valid_extensions = [ '.mp3', '.wav', '.m4a', '.ogg' ],
+    password_salt = '';
 
 // -- Database Configuration
 var Track = db.define('track', {
@@ -90,6 +93,59 @@ var Track = db.define('track', {
         }
     }
 });
+var User = db.define('user', {
+    id: Sequelize.INTEGER,
+    username: Sequelize.STRING(255),
+    email_address: Sequelize.STRING(255),
+    password: Sequelize.STRING(40),
+    lastfm_user: Sequelize.STRING(255),
+    lastfm_session: Sequelize.STRING(64)
+}, {
+    timestamps: true,
+    createdAt: 'create_date',
+    updatedAt: 'update_date',
+    underscored: true,
+    freezeTableName: true,
+    instanceMethods: {
+        isValidPassword: function(input) {
+            var hashed = crypto.createHash('sha1').update(password_salt + input).digest('hex');
+            return (hashed === this.password);
+        }
+    },
+    classMethods: {
+        createPassword: function(input) {
+            return crypto.createHash('sha1').update(password_salt + input).digest('hex');
+        }
+    }
+});
+
+// -- Passport Configuration
+passport.use(new LocalStrategy(function(username, password, done) {
+    User.find({ where: { username: username }}).success(function(user) {
+        if (!user) {
+            return done(null, false, { message: 'Incorrect username' });
+        }
+
+        if (!user.isValidPassword(password)) {
+            return done(null, false, { message: 'Username and password do not match' });
+        }
+
+        return done(null, user);
+    });
+}));
+passport.serializeUser(function(user, done) {
+    done(null, user);
+});
+passport.deserializeUser(function(user, done) {
+    done(null, user);
+});
+function isLoggedIn(req, res, next) {
+    // Middleware to authenticate requests
+    if (req.isAuthenticated()) {
+        return next();
+    }
+    res.redirect('/login');
+}
 
 // -- Stream Configuration
 var library_path = '/home/cperrone/music/';
@@ -97,11 +153,20 @@ var library_path = '/home/cperrone/music/';
 // -- Setup Express
 app.use(express.static(__dirname + '/static/'));
 app.use(express.bodyParser());
+app.use(express.cookieParser());
+app.use(express.session({ secret: 'keyboard cat' }));
+app.use(passport.initialize());
+app.use(passport.session());
 app.set('views', __dirname + '/templates/');
 app.set('view engine', 'jade');
 
 // -- Express endpoints
-app.get('/', function(req, res) {
+app.get('/', isLoggedIn, function(req, res) {
+    passport.authenticate('local', {
+        successRedirect: '/',
+        failureRedirect: '/login'
+    });
+
     Track.findAll({
         order: 'album ASC, track_num ASC, title ASC'
     })
@@ -110,11 +175,12 @@ app.get('/', function(req, res) {
 
         res.render('index', {
             pageTitle: 'Ricochet',
-            library: tracks
+            library: tracks,
+            user: req.user
         });
     });
 });
-app.get('/play/:id', function(req, res) {
+app.get('/play/:id', isLoggedIn, function(req, res) {
     req.connection.setTimeout(750000); // 15 minutes
 
     // Look up the track to get its filename
@@ -137,7 +203,7 @@ app.get('/play/:id', function(req, res) {
         console.log('Could not find file in index with id ' + id);
     });
 });
-app.get('/play/:id/:action', function(req, res) {
+app.get('/play/:id/:action', isLoggedIn, function(req, res) {
     var id = req.params['id'],
         action = req.params['action'];
     Track.find({
@@ -149,7 +215,7 @@ app.get('/play/:id/:action', function(req, res) {
         }
     });
 });
-app.post('/play/:id/:action', function(req, res) {
+app.post('/play/:id/:action', isLoggedIn, function(req, res) {
     var id = req.params['id'],
         action = req.params['action'];
     Track.find({
@@ -187,7 +253,7 @@ app.post('/play/:id/:action', function(req, res) {
         console.log('Could not find file in index with id ' + id);
     });
 });
-app.get('/search/:query?', function(req, res) {
+app.get('/search/:query?', isLoggedIn, function(req, res) {
     // Perform a plaintext search
     var query = req.params['query'];
 
@@ -211,10 +277,25 @@ app.get('/search/:query?', function(req, res) {
         });
     });
 });
-app.post('/server/reindex', function(req, res) {
+app.post('/server/reindex', isLoggedIn, function(req, res) {
     // Reindex the server
     updateIndex();
     res.send("OK");
+});
+// -- Login
+app.get('/login', function(req, res) {
+    res.render('login', {
+        pageTitle: 'Login'
+    });
+});
+app.post('/login',
+    passport.authenticate('local', {
+        successRedirect: '/',
+        failureRedirect: '/login'
+}));
+app.all('/logout', function(req, res) {
+    req.logout();
+    res.redirect('/login');
 });
 
 // Sync the db schema
