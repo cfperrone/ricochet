@@ -187,6 +187,30 @@ app.post('/play/:id/:action', function(req, res) {
         console.log('Could not find file in index with id ' + id);
     });
 });
+app.get('/search/:query?', function(req, res) {
+    // Perform a plaintext search
+    var query = req.params['query'];
+
+    // If the query is empty, return all tracks
+    if (!query) {
+        Track.findAll({
+            order: 'album ASC, track_num ASC, title ASC'
+        })
+        .success(function(tracks) {
+            res.render('library', {
+                library: Track.hydrateMultiple(tracks)
+            });
+        });
+        return;
+    }
+
+    // Otherwise perform plaintext search
+    search(query, function(results) {
+        res.render('library', {
+            library: Track.hydrateMultiple(results)
+        });
+    });
+});
 app.post('/server/reindex', function(req, res) {
     // Reindex the server
     updateIndex();
@@ -279,5 +303,17 @@ function tagOrDefault(tag, def) {
         return def;
     }
     return tag;
+}
+
+// -- Search functions
+function search(query, then) {
+    var qs = "'%" + query + "%'";
+    Track.findAll({
+        where: ["title LIKE " + qs + " OR artist LIKE " + qs + " OR album LIKE " + qs],
+        order: 'album ASC, track_num ASC, title ASC'
+    })
+    .success(function(tracks) {
+        then(tracks);
+    });
 }
 

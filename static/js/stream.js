@@ -20,6 +20,8 @@ var PLAYER = $('audio.player'),
     TRACK_REINDEX = $('.track .reindex-track'),
     MODAL_EDIT = $('#edit-modal'),
     MODAL_EDIT_SUBMIT = $('#edit-modal .submit'),
+    SEARCH_QUERY = $('#search-query'),
+    SEARCH_SUBMIT = $('#search-submit'),
     playing = null,
     changing_volume = false,
     position = 0;
@@ -199,6 +201,24 @@ VOLUME_BAR.on('mousemove', function(event) {
     }
 
     return false;
+});
+
+// Search
+SEARCH_SUBMIT.click(function(e) {
+    e.preventDefault();
+    var query = SEARCH_QUERY.val();
+
+    $('.search-spinner').removeClass('hidden');
+    $.get('/search/' + query, function(data) {
+        $('.library').replaceWith(data);
+        initTrackDropdownEvents($('.library .track'));
+        $('.search-spinner').addClass('hidden');
+    });
+
+    return false;
+});
+SEARCH_QUERY.on('change keyup paste', function() {
+    SEARCH_SUBMIT.trigger('click');
 });
 
 // Global settings buttons

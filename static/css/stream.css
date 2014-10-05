@@ -25,6 +25,10 @@ body {
         color: white;
         text-decoration: none;
     }
+.navbar-spacer {
+    width: 5%;
+    float: left;
+}
 
 .play, .next, .prev {
     cursor: pointer;
