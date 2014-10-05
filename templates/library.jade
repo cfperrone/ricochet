@@ -10,3 +10,8 @@ table.table.table-striped.table-hover.table-responsive.table-condensed.library
     tbody
         each track, index in library
             include row.jade
+    if library.length == 0
+        tfoot
+            tr
+                td.text-center(colspan=7)
+                    em No results
