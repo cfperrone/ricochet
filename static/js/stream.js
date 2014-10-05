@@ -217,7 +217,7 @@ SEARCH_SUBMIT.click(function(e) {
 
     return false;
 });
-SEARCH_QUERY.on('change keyup paste', function() {
+SEARCH_QUERY.on('keyup paste', function() {
     SEARCH_SUBMIT.trigger('click');
 });
 
