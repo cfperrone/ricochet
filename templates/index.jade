@@ -13,6 +13,14 @@ block content
                 a.brand-text(href='/')
                     i.rf.rf-explosion.brand-icon
                     span Ricochet
+            .navbar-spacer &nbsp;
+            form.navbar-form.navbar-left.search(role='search')
+                .input-group
+                    input#search-query.form-control(type='text', placeholder='Search')
+                    span.input-group-btn
+                        button#search-submit.btn.btn-default(type='submit') Submit
+            .brand
+                i.fa.fa-lg.fa-fw.fa-spinner.fa-spin.hidden.search-spinner
             ul.nav.navbar-nav.navbar-right
                 li.dropdown
                     a.dropdown-toggle(data-toggle='dropdown', href='#')
@@ -42,18 +50,7 @@ block content
                 span.title
             .progress
 
-    table.table.table-striped.table-hover.table-responsive.table-condensed.library
-        thead
-            th Title
-            th Duration
-            th Artist
-            th Album
-            th Track
-            th Plays
-            th &nbsp;
-        tbody
-            each track, index in library
-                include row.jade
+    include library.jade
 
     include edit-modal.jade
 
