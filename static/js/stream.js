@@ -107,12 +107,12 @@ function doTrackAction(obj, action, data) {
     });
 }
 
-// every 250ms, update the progress bar and duration clock
+// Every 250ms, update the progress bar and duration clock
+// Also scrobble if necessary
 var progressInterval = setInterval(function() {
     var bar = PROGRESS,
         cur = p.currentTime,
         dur = p.duration,
-        playing = !p.paused,
         width = 0,
         screenWidth = 100;
 
@@ -120,6 +120,13 @@ var progressInterval = setInterval(function() {
     bar.animate({
         'width': width + '%',
     }, 100);
+
+    // Set scrobble event
+    var scrobble_time = Math.min(240, dur/2);
+    if (playing && !playing.scrobbled && dur > 30 && cur > scrobble_time) {
+        playing.scrobbled = true;
+        doTrackAction(playing, 'scrobble', { elapsed: p.currentTime });
+    }
 
     var displayTime = formatSeconds(cur),
         clock = DURATION;

@@ -8,13 +8,17 @@ var express = require('express'),
     crypto = require('crypto'),
     moment = require('moment'),
     Sequelize = require('sequelize'),
+    request = require('request'),
+    qs = require('querystring'),
     execFile = require('child_process').execFile;
     passport = require('passport'),
     LocalStrategy = require('passport-local').Strategy;
 var app = express(),
     db = new Sequelize('ricochet', 'stream', 'lolwat'),
     valid_extensions = [ '.mp3', '.wav', '.m4a', '.ogg' ],
-    password_salt = '';
+    password_salt = '',
+    lastfm_key = '',
+    lastfm_secret = '';
 
 // -- Database Configuration
 var Track = db.define('track', {
@@ -247,6 +251,41 @@ app.post('/play/:id/:action', isLoggedIn, function(req, res) {
                     track: t.hydrate(),
                 });
             });
+        } else if (action == 'scrobble') {
+            var elapsed = req.body['elapsed'],
+                timestamp = moment().subtract(elapsed, 'seconds').format('X');
+
+            if (req.user.lastfm_session == '') {
+                res.send("Nope");
+                return;
+            }
+
+            // Get a LastFM session
+            var params = {
+                api_key: lastfm_key,
+                sk: req.user.lastfm_session,
+                timestamp: timestamp,
+                method: 'track.scrobble',
+                artist: track.artist,
+                track: track.title,
+                album: track.album,
+                trackNumber: track.track_num,
+            };
+            request.post({
+                url: 'http://ws.audioscrobbler.com/2.0/?format=json',
+                form: qs.stringify(getLastFMParams(params)),
+            }, function(err, response, body) {
+                res.send(body);
+                var obj = JSON.parse(body),
+                    error = obj.error;
+
+                if (!error) {
+                    res.send("Yup");
+                } else {
+                    console.log("LastFM Error: " + obj.message);
+                    res.send("Error");
+                }
+            });
         }
     })
     .error(function(err) {
@@ -282,6 +321,7 @@ app.post('/server/reindex', isLoggedIn, function(req, res) {
     updateIndex();
     res.send("OK");
 });
+
 // -- Login
 app.get('/login', function(req, res) {
     res.render('login', {
@@ -296,6 +336,52 @@ app.post('/login',
 app.all('/logout', function(req, res) {
     req.logout();
     res.redirect('/login');
+});
+
+// -- LastFM
+app.get('/lastfm', function(req, res) {
+    var url = "http://www.last.fm/api/auth/?api_key=" + lastfm_key + "&cb=";
+    res.redirect(url);
+});
+app.get('/lastfm/authorize', function(req, res) {
+    var token = req.query.token;
+    console.log(token);
+
+    if (!token) {
+        res.redirect('/');
+        return;
+    }
+
+    // Get a LastFM session
+    var params = {
+        api_key: lastfm_key,
+        token: token,
+        method: 'auth.getSession',
+    };
+    request.get({
+        url: 'http://ws.audioscrobbler.com/2.0/?format=json&' + qs.stringify(getLastFMParams(params)),
+    }, function(err, response, body) {
+        var obj = JSON.parse(body),
+            error = obj.error;
+
+        if (error) {
+            console.log("LastFM Error: " + obj.message);
+            res.redirect('/');
+            return;
+        }
+
+        // Save the LastFM session info
+        var lastfm_username = obj.session.name,
+            lastfm_session = obj.session.key;
+        User.find(req.user.id).success(function(user) {
+            user.lastfm_user = lastfm_username;
+            user.lastfm_session = lastfm_session;
+            user.save()
+            .success(function() {
+                res.redirect('/');
+            });
+        });
+    });
 });
 
 // Sync the db schema
@@ -396,5 +482,22 @@ function search(query, then) {
     .success(function(tracks) {
         then(tracks);
     });
+}
+
+// -- Misc Helpers
+function getLastFMParams(params) {
+    params.api_sig = getLastFMSignature(params);
+    return params;
+}
+function getLastFMSignature(params) {
+    var sig = "",
+        keys = Object.keys(params).sort();
+
+    keys.forEach(function(k) {
+        if (params.hasOwnProperty(k)) {
+            sig = sig + k + params[k];
+        }
+    });
+    return crypto.createHash('md5').update(sig + lastfm_secret).digest('hex');
 }
 
