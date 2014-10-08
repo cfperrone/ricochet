@@ -29,6 +29,7 @@ block content
                     ul.dropdown-menu(role='menu')
                         li
                             a#reindex(href='#') Reindex
+                            a#profile(data-toggle='modal', data-target='#profile-modal') Profile
                             a(href='/logout') Logout
 
 
@@ -54,6 +55,7 @@ block content
     include library.jade
 
     include edit-modal.jade
+    include profile-modal.jade
 
     script(type='text/javascript', src='/js/stream.js')
 

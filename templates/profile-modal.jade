@@ -1,0 +1,45 @@
+#profile-modal.modal.fade(tab-index='-1')
+    .modal-dialog
+        .modal-content
+            .modal-header
+                button.close(type='button', data-dismiss='modal') &times;
+                h4.modal-title User Profile
+            .modal-body
+                #profile-success.alert.alert-success Success!
+                #profile-failure.alert.alert-danger
+                form#form-profile.form-horizontal(action='/profile/edit_profile')
+                    h4 Profile Information
+                    .form-group
+                        label.col-sm-2.control-label(for='edit-email') Email
+                        .col-sm-9
+                            input#edit-email.form-control(type='text', name='email_address')
+                    .form-group
+                        .col-sm-7.col-sm-offset-2
+                            button.submit.btn.btn-primary(type='button') Update
+                form#form-password.form-horizontal(action='/profile/edit_password')
+                    h4 Change Password
+                    .form-group
+                        label.col-sm-2.control-label(for='edit-password') Password
+                        .col-sm-7
+                            input#edit-password.form-control(type='password', name='password')
+                    .form-group
+                        label.col-sm-2.control-label(for='edit-password-confirm') Confirm
+                        .col-sm-7
+                            input#edit-password-confirm.form-control(type='password', name='password_confirm')
+                    .form-group
+                        .col-sm-7.col-sm-offset-2
+                            button.submit.btn.btn-primary(type='button') Update
+                form#form-lastfm.form-horizontal(action='/profile/edit_lastfm')
+                    h4 LastFM Configuration
+                    .form-group
+                        label.col-sm-2.control-label Authorization
+                        .col-sm-9
+                            a.btn.btn-default(href='/lastfm') Re-Authorize
+                            span &nbsp;&nbsp;
+                            a.btn.btn-danger(href='/lastfm/deauth') De-Authorize
+                    .form-group
+                        label.col-sm-2.control-label Scrobbling
+                        .col-sm-9
+                            input#edit-scrobble-status.switch(type='checkbox', name='scrobble-status', checked)
+            .modal-footer
+                button.btn.btn-default(type='button', data-dismiss='modal') Close

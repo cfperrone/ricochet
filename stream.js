@@ -103,7 +103,11 @@ var User = db.define('user', {
     email_address: Sequelize.STRING(255),
     password: Sequelize.STRING(40),
     lastfm_user: Sequelize.STRING(255),
-    lastfm_session: Sequelize.STRING(64)
+    lastfm_session: Sequelize.STRING(64),
+    lastfm_scrobble: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false
+    }
 }, {
     timestamps: true,
     createdAt: 'create_date',
@@ -255,8 +259,13 @@ app.post('/play/:id/:action', isLoggedIn, function(req, res) {
             var elapsed = req.body['elapsed'],
                 timestamp = moment().subtract(elapsed, 'seconds').format('X');
 
+            if (req.user.lastfm_scrobble == false) {
+                res.send("Scrobbling disabled");
+                return;
+            }
+
             if (req.user.lastfm_session == '') {
-                res.send("Nope");
+                res.send("No session data");
                 return;
             }
 
@@ -322,7 +331,55 @@ app.post('/server/reindex', isLoggedIn, function(req, res) {
     res.send("OK");
 });
 
-// -- Login
+// -- Profile
+app.get('/profile', isLoggedIn, function(req, res) {
+    User.find(req.user.id).success(function(user) {
+        res.json(user);
+        return;
+    });
+});
+app.post('/profile/:action', isLoggedIn, function(req, res) {
+    var action = req.params['action'];
+
+    User.find(req.user.id).success(function(user) {
+        if (action == 'edit_profile') {
+            user.email_address = req.body['email_address'];
+            user.save();
+            res.json(user);
+            return;
+        } else if (action == 'edit_password') {
+            var new_pwd = req.body['password'],
+                new_pwd_confirm = req.body['password_confirm'];
+
+            // Make sure passwords are not empty
+            if (new_pwd == '' || new_pwd_confirm == '') {
+                res.status(400).send("Password cannot be empty")
+                return;
+            }
+
+            // Make sure passwords match
+            if (new_pwd != new_pwd_confirm) {
+                res.status(400).send("Password mismatch");
+                return;
+            }
+
+            user.password = User.createPassword(new_pwd);
+            user.save();
+            res.json(user);
+            return;
+        } else if (action = 'edit_lastfm') {
+            var scrobble = req.body['scrobble-status'] ? true : false;
+            user.lastfm_scrobble = scrobble;
+            user.save();
+            res.json(user);
+            return;
+        }
+
+        res.status(501).send("Not Implemented");
+    });
+});
+
+// -- Login & Authentication
 app.get('/login', function(req, res) {
     res.render('login', {
         pageTitle: 'Login'
@@ -343,7 +400,7 @@ app.get('/lastfm', function(req, res) {
     var url = "http://www.last.fm/api/auth/?api_key=" + lastfm_key + "&cb=";
     res.redirect(url);
 });
-app.get('/lastfm/authorize', function(req, res) {
+app.get('/lastfm/authorize', isLoggedIn, function(req, res) {
     var token = req.query.token;
     console.log(token);
 
@@ -376,10 +433,22 @@ app.get('/lastfm/authorize', function(req, res) {
         User.find(req.user.id).success(function(user) {
             user.lastfm_user = lastfm_username;
             user.lastfm_session = lastfm_session;
+            user.lastfm_scrobble = true;
             user.save()
             .success(function() {
                 res.redirect('/');
             });
+        });
+    });
+});
+app.get('/lastfm/deauth', isLoggedIn, function(req, res) {
+    User.find(req.user.id).success(function(user) {
+        user.lastfm_user = '';
+        user.lastfm_session = '';
+        user.lastfm_scrobble = false;
+        user.save()
+        .success(function() {
+            res.redirect('/');
         });
     });
 });

@@ -22,6 +22,7 @@ var PLAYER = $('audio.player'),
     MODAL_EDIT_SUBMIT = $('#edit-modal .submit'),
     SEARCH_QUERY = $('#search-query'),
     SEARCH_SUBMIT = $('#search-submit'),
+    user = null,
     playing = null,
     changing_volume = false,
     position = 0;
@@ -32,6 +33,11 @@ MODAL_EDIT.modal({ show: false });
 
 $('.library .track').click(function() {
     playTrack($(this));
+});
+
+// Get the user information
+$.getJSON('/profile', function(data) {
+    user = data;
 });
 
 function playTrack(obj) {
@@ -123,7 +129,7 @@ var progressInterval = setInterval(function() {
 
     // Set scrobble event
     var scrobble_time = Math.min(240, dur/2);
-    if (playing && !playing.scrobbled && dur > 30 && cur > scrobble_time) {
+    if (user && user.lastfm_scrobble && playing && !playing.scrobbled && dur > 30 && cur > scrobble_time) {
         playing.scrobbled = true;
         doTrackAction(playing, 'scrobble', { elapsed: p.currentTime });
     }
@@ -356,3 +362,48 @@ function alertError(message) {
 }
 ALERT_SUCCESS.hide();
 ALERT_ERROR.hide();
+
+// Profile modal submission
+PROFILE_ALERT_SUCCESS = $('#profile-success');
+PROFILE_ALERT_FAILURE = $('#profile-failure');
+PROFILE_ALERT_SUCCESS.hide();
+PROFILE_ALERT_FAILURE.hide();
+$('#profile').click(function() {
+    $.getJSON('/profile', function(data) {
+        // Fill in profile fields
+        $('#edit-email').val(data.email_address);
+
+        // Set scrobble status slider
+        $('#edit-scrobble-status').removeAttr('checked');
+        if (data.lastfm_scrobble) {
+            $('#edit-scrobble-status').attr('checked', 'checked');
+        }
+        $('#edit-scrobble-status').bootstrapSwitch({
+            state: (data.lastfm_scrobble),
+            disabled: (data.lastfm_session == ''),
+        });
+    });
+});
+$('#profile-modal form').submit(function(e) {
+    e.preventDefault();
+    var url = $(this).attr('action');
+    $.post(url, $(this).serializeArray(), function(data) {
+        user = data;
+        PROFILE_ALERT_SUCCESS.fadeIn().delay(2000).fadeOut();
+    })
+    .fail(function(data) {
+        PROFILE_ALERT_FAILURE.html(data.responseText).fadeIn().delay(2000).fadeOut();
+    })
+    .always(function() {
+        $('#edit-password').val('');
+        $('#edit-password-confirm').val('');
+    });
+});
+// Trigger form submission when click submit
+$('#profile-modal .submit').click(function() {
+    $(this).closest('form').submit();
+});
+// Trigger lastfm scrobble submission on switch change
+$('#edit-scrobble-status').on('switchChange.bootstrapSwitch', function() {
+    $('#form-lastfm').submit();
+});
