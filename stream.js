@@ -118,6 +118,9 @@ var User = db.define('user', {
         isValidPassword: function(input) {
             var hashed = crypto.createHash('sha1').update(password_salt + input).digest('hex');
             return (hashed === this.password);
+        },
+        canScrobble: function() {
+            return (this.lastfm_session != '') && (this.lastfm_scrobble == true);
         }
     },
     classMethods: {
@@ -203,6 +206,9 @@ app.get('/play/:id', isLoggedIn, function(req, res) {
                 res.type('audio/mpeg');
                 res.send(data);
             });
+
+            // Mark as now playing in LastFM
+            lastFMMarkNowPlaying(track, req.user);
         } catch (e) {
             console.log('Could not find file ' + track.filename);
         }
@@ -289,7 +295,8 @@ app.post('/play/:id/:action', isLoggedIn, function(req, res) {
                     error = obj.error;
 
                 if (!error) {
-                    res.send("Yup");
+                    console.log("LastFM: Scrobbled track " + track.id + " - " + track.title);
+                    res.send("Scrobble success");
                 } else {
                     console.log("LastFM Error: " + obj.message);
                     res.send("Error");
@@ -569,4 +576,31 @@ function getLastFMSignature(params) {
     });
     return crypto.createHash('md5').update(sig + lastfm_secret).digest('hex');
 }
+function lastFMMarkNowPlaying(track, user) {
+    if (!user.lastfm_scrobble || user.lastfm_session == '') {
+        return;
+    }
 
+    var params = {
+        api_key: lastfm_key,
+        sk: user.lastfm_session,
+        method: 'track.updateNowPlaying',
+        artist: track.artist,
+        track: track.title,
+        album: track.album,
+        trackNumber: track.track_num,
+    };
+    request.post({
+        url: 'http://ws.audioscrobbler.com/2.0/?format=json',
+        form: qs.stringify(getLastFMParams(params)),
+    }, function(err, response, body) {
+        var obj = JSON.parse(body),
+            error = obj.error;
+
+        if (!error) {
+            console.log("LastFM: Marked as now playing, track " + track.id + " - " + track.title);
+        } else {
+            console.log("LastFM Error: " + obj.message);
+        }
+    });
+}
