@@ -116,8 +116,7 @@ var User = db.define('user', {
     freezeTableName: true,
     instanceMethods: {
         isValidPassword: function(input) {
-            var hashed = crypto.createHash('sha1').update(password_salt + input).digest('hex');
-            return (hashed === this.password);
+            return (User.createPassword(input) === this.password);
         },
         canScrobble: function() {
             return (this.lastfm_session != '') && (this.lastfm_scrobble == true);
