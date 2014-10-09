@@ -15,10 +15,7 @@ var express = require('express'),
     LocalStrategy = require('passport-local').Strategy;
 var app = express(),
     db = new Sequelize('ricochet', 'stream', 'lolwat'),
-    valid_extensions = [ '.mp3', '.wav', '.m4a', '.ogg' ],
-    password_salt = '',
-    lastfm_key = '',
-    lastfm_secret = '';
+    config = require('./config.js').config;
 
 // -- Database Configuration
 var Track = db.define('track', {
@@ -124,7 +121,7 @@ var User = db.define('user', {
     },
     classMethods: {
         createPassword: function(input) {
-            return crypto.createHash('sha1').update(password_salt + input).digest('hex');
+            return crypto.createHash('sha1').update(config.password_salt + input).digest('hex');
         }
     }
 });
@@ -276,7 +273,7 @@ app.post('/play/:id/:action', isLoggedIn, function(req, res) {
 
             // Get a LastFM session
             var params = {
-                api_key: lastfm_key,
+                api_key: config.lastfm_key,
                 sk: req.user.lastfm_session,
                 timestamp: timestamp,
                 method: 'track.scrobble',
@@ -403,7 +400,8 @@ app.all('/logout', function(req, res) {
 
 // -- LastFM
 app.get('/lastfm', function(req, res) {
-    var url = "http://www.last.fm/api/auth/?api_key=" + lastfm_key + "&cb=";
+    var redirect_url = config.root_url + "/lastfm/authorize",
+        url = "http://www.last.fm/api/auth/?api_key=" + lastfm_key + "&cb=" + redirect_url;
     res.redirect(url);
 });
 app.get('/lastfm/authorize', isLoggedIn, function(req, res) {
@@ -466,7 +464,7 @@ db.sync()
     updateIndex();
 });
 // Start the server
-app.listen(8081);
+app.listen(config.port);
 
 // -- Indexes the music library
 function updateIndex() {
@@ -479,7 +477,7 @@ function updateIndex() {
 
             // bail if we've found an invalid extension
             var extension = path.extname(filename).toLowerCase();
-            if (valid_extensions.indexOf(extension) < 0) {
+            if (config.valid_extensions.indexOf(extension) < 0) {
                 console.log("Invalid extension \"" + extension + "\" found");
                 return;
             }
@@ -573,7 +571,7 @@ function getLastFMSignature(params) {
             sig = sig + k + params[k];
         }
     });
-    return crypto.createHash('md5').update(sig + lastfm_secret).digest('hex');
+    return crypto.createHash('md5').update(sig + config.lastfm_secret).digest('hex');
 }
 function lastFMMarkNowPlaying(track, user) {
     if (!user.lastfm_scrobble || user.lastfm_session == '') {
