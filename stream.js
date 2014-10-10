@@ -154,9 +154,6 @@ function isLoggedIn(req, res, next) {
     res.redirect('/login');
 }
 
-// -- Stream Configuration
-var library_path = '/home/cperrone/music/';
-
 // -- Setup Express
 app.use(express.static(__dirname + '/static/'));
 app.use(express.bodyParser());
@@ -203,11 +200,12 @@ app.get('/play/:id', isLoggedIn, function(req, res) {
                 res.send(data);
             });
 
-            // Mark as now playing in LastFM
-            lastFMMarkNowPlaying(track, req.user);
         } catch (e) {
             console.log('Could not find file ' + track.filename);
+            return;
         }
+        // Mark as now playing in LastFM
+        lastFMMarkNowPlaying(track, req.user);
     })
     .error(function(err) {
         console.log('Could not find file in index with id ' + id);
@@ -401,7 +399,7 @@ app.all('/logout', function(req, res) {
 // -- LastFM
 app.get('/lastfm', function(req, res) {
     var redirect_url = config.root_url + "/lastfm/authorize",
-        url = "http://www.last.fm/api/auth/?api_key=" + lastfm_key + "&cb=" + redirect_url;
+        url = "http://www.last.fm/api/auth/?api_key=" + config.config.lastfm_key + "&cb=" + redirect_url;
     res.redirect(url);
 });
 app.get('/lastfm/authorize', isLoggedIn, function(req, res) {
@@ -415,7 +413,7 @@ app.get('/lastfm/authorize', isLoggedIn, function(req, res) {
 
     // Get a LastFM session
     var params = {
-        api_key: lastfm_key,
+        api_key: config.lastfm_key,
         token: token,
         method: 'auth.getSession',
     };
@@ -469,7 +467,7 @@ app.listen(config.port);
 // -- Indexes the music library
 function updateIndex() {
     // Use `find` to get a list of all files recursively in library_path
-    execFile('find', [ library_path, '-type', 'f' ], function(err, stdout, stderr) {
+    execFile('find', [ config.library_path, '-type', 'f' ], function(err, stdout, stderr) {
         var file_list = stdout.split('\n');
         file_list.pop(); // removes current dir from file_list
         file_list.forEach(function(filename, i) {
@@ -579,7 +577,7 @@ function lastFMMarkNowPlaying(track, user) {
     }
 
     var params = {
-        api_key: lastfm_key,
+        api_key: config.lastfm_key,
         sk: user.lastfm_session,
         method: 'track.updateNowPlaying',
         artist: track.artist,
