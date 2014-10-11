@@ -15,120 +15,14 @@ var express = require('express'),
     LocalStrategy = require('passport-local').Strategy;
 var app = express(),
     db = new Sequelize('ricochet', 'stream', 'lolwat'),
-    config = require('./config.js').config;
+    config = require('./config.js').config,
+    schema = require('./includes/schema.js');
 
-// -- Database Configuration
-var Track = db.define('track', {
-    id: Sequelize.STRING(255),
-    filename: Sequelize.STRING(1024),
-    title: Sequelize.STRING(255),
-    duration: {
-        type: Sequelize.INTEGER,
-        default_value: 0,
-    },
-    artist: {
-        type: Sequelize.STRING(255),
-        default_value: '',
-    },
-    album: {
-        type: Sequelize.STRING(255),
-        default_value: '',
-    },
-    genre: {
-        type: Sequelize.STRING(255),
-        default_value: '',
-    },
-    year: {
-        type: Sequelize.STRING(16),
-        default_value: '',
-    },
-    track_num: {
-        type: Sequelize.INTEGER,
-        defaultValue: 0,
-    },
-    track_total: {
-        type: Sequelize.INTEGER,
-        defaultValue: 0,
-    },
-    disc_num: {
-        type: Sequelize.INTEGER,
-        defaultValue: 0,
-    },
-    disc_total: {
-        type: Sequelize.INTEGER,
-        defaultValue: 0,
-    },
-    play_count: {
-        type: Sequelize.INTEGER,
-        defaultValue: 0,
-    }
-}, {
-    timestamps: true,
-    createdAt: 'create_date',
-    updatedAt: 'update_date',
-    underscored: true,
-    freezeTableName: true,
-    instanceMethods: {
-        getDuration: function() {
-            var m = moment.unix(parseInt(this.duration));
-            if (this.duration > 3599) {
-                return m.format('H:mm:ss');
-            } else {
-                return m.format('m:ss');
-            }
-        },
-        // Enhances the db instance in preparation of presentation
-        hydrate: function() {
-            // Add a pretty duration string
-            this.durationString = this.getDuration();
-
-            return this;
-        }
-    },
-    classMethods: {
-        hydrateMultiple: function(tracks) {
-            for (var i = 0; i < tracks.length; i++) {
-                tracks[i] = tracks[i].hydrate();
-            }
-            return tracks;
-        }
-    }
-});
-var User = db.define('user', {
-    id: Sequelize.INTEGER,
-    username: Sequelize.STRING(255),
-    email_address: Sequelize.STRING(255),
-    password: Sequelize.STRING(40),
-    lastfm_user: Sequelize.STRING(255),
-    lastfm_session: Sequelize.STRING(64),
-    lastfm_scrobble: {
-        type: Sequelize.BOOLEAN,
-        defaultValue: false
-    }
-}, {
-    timestamps: true,
-    createdAt: 'create_date',
-    updatedAt: 'update_date',
-    underscored: true,
-    freezeTableName: true,
-    instanceMethods: {
-        isValidPassword: function(input) {
-            return (User.createPassword(input) === this.password);
-        },
-        canScrobble: function() {
-            return (this.lastfm_session != '') && (this.lastfm_scrobble == true);
-        }
-    },
-    classMethods: {
-        createPassword: function(input) {
-            return crypto.createHash('sha1').update(config.password_salt + input).digest('hex');
-        }
-    }
-});
+var models = schema(db, config, updateIndex);
 
 // -- Passport Configuration
 passport.use(new LocalStrategy(function(username, password, done) {
-    User.find({ where: { username: username }}).success(function(user) {
+    models.User.find({ where: { username: username }}).success(function(user) {
         if (!user) {
             return done(null, false, { message: 'Incorrect username' });
         }
@@ -171,11 +65,11 @@ app.get('/', isLoggedIn, function(req, res) {
         failureRedirect: '/login'
     });
 
-    Track.findAll({
+    models.Track.findAll({
         order: 'album ASC, track_num ASC, title ASC'
     })
     .success(function(tracks) {
-        tracks = Track.hydrateMultiple(tracks);
+        tracks = models.Track.hydrateMultiple(tracks);
 
         res.render('index', {
             pageTitle: 'Ricochet',
@@ -189,7 +83,7 @@ app.get('/play/:id', isLoggedIn, function(req, res) {
 
     // Look up the track to get its filename
     var id = req.params['id'];
-    Track.find({
+    models.Track.find({
         where: { id: id }
     })
     .success(function(track) {
@@ -214,7 +108,7 @@ app.get('/play/:id', isLoggedIn, function(req, res) {
 app.get('/play/:id/:action', isLoggedIn, function(req, res) {
     var id = req.params['id'],
         action = req.params['action'];
-    Track.find({
+    models.Track.find({
         where: { id: id }
     })
     .success(function(track) {
@@ -226,7 +120,7 @@ app.get('/play/:id/:action', isLoggedIn, function(req, res) {
 app.post('/play/:id/:action', isLoggedIn, function(req, res) {
     var id = req.params['id'],
         action = req.params['action'];
-    Track.find({
+    models.Track.find({
         where: { id: id }
     })
     .success(function(track) {
@@ -308,12 +202,12 @@ app.get('/search/:query?', isLoggedIn, function(req, res) {
 
     // If the query is empty, return all tracks
     if (!query) {
-        Track.findAll({
+        models.Track.findAll({
             order: 'album ASC, track_num ASC, title ASC'
         })
         .success(function(tracks) {
             res.render('library', {
-                library: Track.hydrateMultiple(tracks)
+                library: models.Track.hydrateMultiple(tracks)
             });
         });
         return;
@@ -322,7 +216,7 @@ app.get('/search/:query?', isLoggedIn, function(req, res) {
     // Otherwise perform plaintext search
     search(query, function(results) {
         res.render('library', {
-            library: Track.hydrateMultiple(results)
+            library: models.Track.hydrateMultiple(results)
         });
     });
 });
@@ -334,7 +228,7 @@ app.post('/server/reindex', isLoggedIn, function(req, res) {
 
 // -- Profile
 app.get('/profile', isLoggedIn, function(req, res) {
-    User.find(req.user.id).success(function(user) {
+    models.User.find(req.user.id).success(function(user) {
         res.json(user);
         return;
     });
@@ -342,7 +236,7 @@ app.get('/profile', isLoggedIn, function(req, res) {
 app.post('/profile/:action', isLoggedIn, function(req, res) {
     var action = req.params['action'];
 
-    User.find(req.user.id).success(function(user) {
+    models.User.find(req.user.id).success(function(user) {
         if (action == 'edit_profile') {
             user.email_address = req.body['email_address'];
             user.save();
@@ -364,7 +258,7 @@ app.post('/profile/:action', isLoggedIn, function(req, res) {
                 return;
             }
 
-            user.password = User.createPassword(new_pwd);
+            user.password = models.User.createPassword(new_pwd);
             user.save();
             res.json(user);
             return;
@@ -432,7 +326,7 @@ app.get('/lastfm/authorize', isLoggedIn, function(req, res) {
         // Save the LastFM session info
         var lastfm_username = obj.session.name,
             lastfm_session = obj.session.key;
-        User.find(req.user.id).success(function(user) {
+        models.User.find(req.user.id).success(function(user) {
             user.lastfm_user = lastfm_username;
             user.lastfm_session = lastfm_session;
             user.lastfm_scrobble = true;
@@ -444,7 +338,7 @@ app.get('/lastfm/authorize', isLoggedIn, function(req, res) {
     });
 });
 app.get('/lastfm/deauth', isLoggedIn, function(req, res) {
-    User.find(req.user.id).success(function(user) {
+    models.User.find(req.user.id).success(function(user) {
         user.lastfm_user = '';
         user.lastfm_session = '';
         user.lastfm_scrobble = false;
@@ -455,12 +349,6 @@ app.get('/lastfm/deauth', isLoggedIn, function(req, res) {
     });
 });
 
-// Sync the db schema
-db.sync()
-.success(function() {
-    // Index the library
-    updateIndex();
-});
 // Start the server
 app.listen(config.port);
 
@@ -502,7 +390,7 @@ function updateIndex() {
                 };
 
                 // Check if the index already exists, otherwise create it
-                Track.findOrCreate({ id: id }, track_data)
+                models.Track.findOrCreate({ id: id }, track_data)
                 .success(function(track, created) {
                     if (created) {
                         console.log("Created " + track.title);
@@ -546,7 +434,7 @@ function tagOrDefault(tag, def) {
 // -- Search functions
 function search(query, then) {
     var qs = "'%" + query + "%'";
-    Track.findAll({
+    models.Track.findAll({
         where: ["title LIKE " + qs + " OR artist LIKE " + qs + " OR album LIKE " + qs],
         order: 'album ASC, track_num ASC, title ASC'
     })
