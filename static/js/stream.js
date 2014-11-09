@@ -31,9 +31,12 @@ var PLAYER = $('audio.player'),
 $('.dropdown-toggle').dropdown();
 MODAL_EDIT.modal({ show: false });
 
-$('.library .track').click(function() {
-    playTrack($(this));
-});
+function initTrackEvents() {
+    $('.library .track').click(function() {
+        playTrack($(this));
+    });
+}
+initTrackEvents();
 
 // Get the user information
 $.getJSON('/profile', function(data) {
@@ -224,7 +227,9 @@ SEARCH_SUBMIT.click(function(e) {
     $('.search-spinner').removeClass('hidden');
     $.get('/search/' + query, function(data) {
         $('.library').replaceWith(data);
+        initTrackEvents();
         initTrackDropdownEvents($('.library .track'));
+        setControlsInfoRow(playing);
         $('.search-spinner').addClass('hidden');
     });
 
@@ -317,12 +322,15 @@ function setControlsInfo(obj) {
     });
 
     setPageTitle(title);
-
+    setControlsInfoRow(obj);
+}
+function setControlsInfoRow(obj) {
     // Update the row color for the currently playing track
     $('.library tr.info').removeClass('info');
 
     if (!$.isEmptyObject(obj)) {
-        obj.addClass('info');
+        var on_page = $('.library .track[data-track_id=' + obj.data('track_id') + ']');
+        on_page.addClass('info');
     }
 }
 
