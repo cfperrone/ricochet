@@ -13,7 +13,9 @@ var express = require('express'),
     passport = require('passport'),
     LocalStrategy = require('passport-local').Strategy;
 var app = express(),
-    db = new Sequelize('ricochet', 'stream', 'lolwat'),
+    db = new Sequelize('ricochet', 'stream', 'lolwat', {
+        logging: false
+    }),
     config = require('./config.js').config,
     Schema = require('./includes/schema.js'),
     LastFM = require('./includes/lastfm.js'),
