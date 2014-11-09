@@ -16,10 +16,12 @@ var app = express(),
     db = new Sequelize('ricochet', 'stream', 'lolwat'),
     config = require('./config.js').config,
     Schema = require('./includes/schema.js'),
-    LastFM = require('./includes/lastfm.js');
+    LastFM = require('./includes/lastfm.js'),
+    Elasticsearch = require('./includes/elasticsearch.js');
 
 var models = Schema(db, config, updateIndex),
-    lastfm = LastFM(app, db, config);
+    lastfm = LastFM(app, db, config),
+    elasticsearch = Elasticsearch('http://micro.hm:9200', 'ricochet', 'track');
 
 // -- Passport Configuration
 passport.use(new LocalStrategy(function(username, password, done) {
@@ -360,6 +362,9 @@ function updateIndex() {
                     } else {
                         console.log("Indexed " + track.title);
                     }
+
+                    // Register this track for search indexing
+                    elasticsearch.index(track);
                 })
                 .error(function(err) {
                     console.log(err);
