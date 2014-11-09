@@ -6,7 +6,6 @@ var express = require('express'),
     path = require('path'),
     mm = require('musicmetadata'),
     crypto = require('crypto'),
-    moment = require('moment'),
     Sequelize = require('sequelize'),
     request = require('request'),
     qs = require('querystring'),
@@ -16,9 +15,11 @@ var express = require('express'),
 var app = express(),
     db = new Sequelize('ricochet', 'stream', 'lolwat'),
     config = require('./config.js').config,
-    schema = require('./includes/schema.js');
+    Schema = require('./includes/schema.js'),
+    LastFM = require('./includes/lastfm.js');
 
-var models = schema(db, config, updateIndex);
+var models = Schema(db, config, updateIndex),
+    lastfm = LastFM(app, db, config);
 
 // -- Passport Configuration
 passport.use(new LocalStrategy(function(username, password, done) {
@@ -98,8 +99,9 @@ app.get('/play/:id', isLoggedIn, function(req, res) {
             console.log('Could not find file ' + track.filename);
             return;
         }
+
         // Mark as now playing in LastFM
-        lastFMMarkNowPlaying(track, req.user);
+        lastfm.nowPlaying(track, req.user);
     })
     .error(function(err) {
         console.log('Could not find file in index with id ' + id);
@@ -150,46 +152,7 @@ app.post('/play/:id/:action', isLoggedIn, function(req, res) {
                 });
             });
         } else if (action == 'scrobble') {
-            var elapsed = req.body['elapsed'],
-                timestamp = moment().subtract(elapsed, 'seconds').format('X');
-
-            if (req.user.lastfm_scrobble == false) {
-                res.send("Scrobbling disabled");
-                return;
-            }
-
-            if (req.user.lastfm_session == '') {
-                res.send("No session data");
-                return;
-            }
-
-            // Get a LastFM session
-            var params = {
-                api_key: config.lastfm_key,
-                sk: req.user.lastfm_session,
-                timestamp: timestamp,
-                method: 'track.scrobble',
-                artist: track.artist,
-                track: track.title,
-                album: track.album,
-                trackNumber: track.track_num,
-            };
-            request.post({
-                url: 'http://ws.audioscrobbler.com/2.0/?format=json',
-                form: qs.stringify(getLastFMParams(params)),
-            }, function(err, response, body) {
-                res.send(body);
-                var obj = JSON.parse(body),
-                    error = obj.error;
-
-                if (!error) {
-                    console.log("LastFM: Scrobbled track " + track.id + " - " + track.title);
-                    res.send("Scrobble success");
-                } else {
-                    console.log("LastFM Error: " + obj.message);
-                    res.send("Error");
-                }
-            });
+            lastfm.scrobble(track, req.user, req.body['elapsed']);
         }
     })
     .error(function(err) {
@@ -312,7 +275,7 @@ app.get('/lastfm/authorize', isLoggedIn, function(req, res) {
         method: 'auth.getSession',
     };
     request.get({
-        url: 'http://ws.audioscrobbler.com/2.0/?format=json&' + qs.stringify(getLastFMParams(params)),
+        url: 'http://ws.audioscrobbler.com/2.0/?format=json&' + qs.stringify(lastfm.getLastFMParams(params)),
     }, function(err, response, body) {
         var obj = JSON.parse(body),
             error = obj.error;
@@ -443,47 +406,3 @@ function search(query, then) {
     });
 }
 
-// -- Misc Helpers
-function getLastFMParams(params) {
-    params.api_sig = getLastFMSignature(params);
-    return params;
-}
-function getLastFMSignature(params) {
-    var sig = "",
-        keys = Object.keys(params).sort();
-
-    keys.forEach(function(k) {
-        if (params.hasOwnProperty(k)) {
-            sig = sig + k + params[k];
-        }
-    });
-    return crypto.createHash('md5').update(sig + config.lastfm_secret).digest('hex');
-}
-function lastFMMarkNowPlaying(track, user) {
-    if (!user.lastfm_scrobble || user.lastfm_session == '') {
-        return;
-    }
-
-    var params = {
-        api_key: config.lastfm_key,
-        sk: user.lastfm_session,
-        method: 'track.updateNowPlaying',
-        artist: track.artist,
-        track: track.title,
-        album: track.album,
-        trackNumber: track.track_num,
-    };
-    request.post({
-        url: 'http://ws.audioscrobbler.com/2.0/?format=json',
-        form: qs.stringify(getLastFMParams(params)),
-    }, function(err, response, body) {
-        var obj = JSON.parse(body),
-            error = obj.error;
-
-        if (!error) {
-            console.log("LastFM: Marked as now playing, track " + track.id + " - " + track.title);
-        } else {
-            console.log("LastFM Error: " + obj.message);
-        }
-    });
-}
