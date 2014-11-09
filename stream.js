@@ -259,58 +259,27 @@ app.all('/logout', function(req, res) {
 
 // -- LastFM
 app.get('/lastfm', function(req, res) {
-    var redirect_url = config.root_url + "/lastfm/authorize",
-        url = "http://www.last.fm/api/auth/?api_key=" + config.config.lastfm_key + "&cb=" + redirect_url;
+    var redirect_url = getRootURL() + "/lastfm/authorize",
+        url = "http://www.last.fm/api/auth/?api_key=" + config.lastfm_key + "&cb=" + redirect_url;
     res.redirect(url);
 });
 app.get('/lastfm/authorize', isLoggedIn, function(req, res) {
     var token = req.query.token;
-    console.log(token);
 
     if (!token) {
         res.redirect('/');
         return;
     }
 
-    // Get a LastFM session
-    var params = {
-        api_key: config.lastfm_key,
-        token: token,
-        method: 'auth.getSession',
-    };
-    request.get({
-        url: 'http://ws.audioscrobbler.com/2.0/?format=json&' + qs.stringify(lastfm.getLastFMParams(params)),
-    }, function(err, response, body) {
-        var obj = JSON.parse(body),
-            error = obj.error;
-
-        if (error) {
-            console.log("LastFM Error: " + obj.message);
+    models.User.find(req.user.id).success(function(user) {
+        lastfm.getSession(user, token, function() {
             res.redirect('/');
-            return;
-        }
-
-        // Save the LastFM session info
-        var lastfm_username = obj.session.name,
-            lastfm_session = obj.session.key;
-        models.User.find(req.user.id).success(function(user) {
-            user.lastfm_user = lastfm_username;
-            user.lastfm_session = lastfm_session;
-            user.lastfm_scrobble = true;
-            user.save()
-            .success(function() {
-                res.redirect('/');
-            });
         });
     });
 });
 app.get('/lastfm/deauth', isLoggedIn, function(req, res) {
     models.User.find(req.user.id).success(function(user) {
-        user.lastfm_user = '';
-        user.lastfm_session = '';
-        user.lastfm_scrobble = false;
-        user.save()
-        .success(function() {
+        lastfm.destroySession(user, function() {
             res.redirect('/');
         });
     });
@@ -413,3 +382,7 @@ function search(query, then) {
     });
 }
 
+// -- General helper functions
+function getRootURL() {
+    return config.root_url + (config.port == 80 ? '' : ':' + config.port)
+}

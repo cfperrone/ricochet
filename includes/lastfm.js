@@ -70,7 +70,47 @@ module.exports.scrobble = function(track, user, elapsed) {
             console.log("LastFM: Error: " + obj.message);
         }
     });
+},
+module.exports.getSession = function(user, token, then) {
+    var params = {
+        api_key: config.lastfm_key,
+        token: token,
+        method: 'auth.getSession',
+    };
+    request.get({
+        url: 'http://ws.audioscrobbler.com/2.0/?format=json&' + qs.stringify(module.exports.getLastFMParams(params)),
+    }, function(err, response, body) {
+        var obj = JSON.parse(body),
+            error = obj.error;
+
+        if (error) {
+            console.log("LastFM Error: " + obj.message);
+            then();
+            return;
+        }
+
+        // Save the LastFM session data
+        var lastfm_username = obj.session.name,
+            lastfm_session = obj.session.key;
+        user.lastfm_user = lastfm_username;
+        user.lastfm_session = lastfm_session;
+        user.lastfm_scrobble = true;
+        user.save()
+        .success(function() {
+            then();
+        });
+    });
+},
+module.exports.destroySession = function(user, then) {
+    user.lastfm_user = '';
+    user.lastfm_session = '';
+    user.lastfm_scrobble = false;
+    user.save()
+    .success(function() {
+        then();
+    });
 };
+
 
 module.exports.getLastFMParams = function(params) {
     params.api_sig = getLastFMSignature(params);
