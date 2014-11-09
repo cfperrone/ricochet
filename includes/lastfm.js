@@ -5,6 +5,8 @@ var request = require('request'),
 
 var app, db, config;
 
+var API_URL = 'https://ws.audioscrobbler.com/2.0/?format=json';
+
 module.exports = function(a, d, c) {
     app = a; db = d; config = c;
 
@@ -25,7 +27,7 @@ module.exports.nowPlaying = function(track, user) {
         trackNumber: track.track_num,
     };
     request.post({
-        url: 'http://ws.audioscrobbler.com/2.0/?format=json',
+        url: API_URL,
         form: qs.stringify(module.exports.getLastFMParams(params)),
     }, function(err, response, body) {
         var obj = JSON.parse(body),
@@ -58,7 +60,7 @@ module.exports.scrobble = function(track, user, elapsed) {
         trackNumber: track.track_num,
     };
     request.post({
-        url: 'http://ws.audioscrobbler.com/2.0/?format=json',
+        url: API_URL,
         form: qs.stringify(module.exports.getLastFMParams(params)),
     }, function(err, response, body) {
         var obj = JSON.parse(body),
@@ -78,7 +80,7 @@ module.exports.getSession = function(user, token, then) {
         method: 'auth.getSession',
     };
     request.get({
-        url: 'http://ws.audioscrobbler.com/2.0/?format=json&' + qs.stringify(module.exports.getLastFMParams(params)),
+        url: API_URL + '&' + qs.stringify(module.exports.getLastFMParams(params)),
     }, function(err, response, body) {
         var obj = JSON.parse(body),
             error = obj.error;
