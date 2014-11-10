@@ -372,13 +372,15 @@ function tagOrDefault(tag, def) {
 
 // -- Search functions
 function search(query, then) {
-    var qs = "'%" + query + "%'";
-    models.Track.findAll({
-        where: ["title LIKE " + qs + " OR artist LIKE " + qs + " OR album LIKE " + qs],
-        order: 'album ASC, track_num ASC, title ASC'
-    })
-    .success(function(tracks) {
-        then(tracks);
+    elasticsearch.search(query, function(task_ids) {
+        models.Track.findAll({
+            where: {
+                id: task_ids
+            }
+        })
+        .success(function(tracks) {
+            then(tracks);
+        });
     });
 }
 

@@ -26,6 +26,35 @@ module.exports.index = function(track) {
 // Flush the cache to index
 module.exports.flush = function() {
     cacheFlush();
+},
+module.exports.search = function(_query, then) {
+    client.search({
+        index: es_index,
+        type: es_type,
+        q: _query,
+        fields: false
+    }, function(error, response) {
+        if (error) {
+            conole.log("ES: " + error);
+            then([]);
+        }
+
+        // Return an empty array on no results
+        var hit_count = response.hits.total;
+        if (hits == 0) {
+            then([]);
+        }
+
+        // Collate the task_ids
+        var hits = response.hits.hits,
+            task_ids = [];
+        hits.forEach(function(hit) {
+            task_ids.push(hit._id);
+            console.log(hit);
+        });
+       console.log(task_ids);
+        then(task_ids);
+    });
 }
 
 // -- Local Functions
@@ -99,7 +128,13 @@ function getActionArrayForTrack(track) {
     }
 }
 function getTrackData(track) {
-    return track.values;
+    return {
+        id: track.id,
+        title: track.title,
+        artist: track.artist,
+        album: track.album,
+        genre: track.genre
+    }
 }
 function registerAutoFlush() {
     if (autoflush > 0) {
