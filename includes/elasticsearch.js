@@ -23,7 +23,6 @@ module.exports = function(_host, _index, _type) {
 module.exports.index = function(track) {
     cachePush(track);
 },
-
 // Flush the cache to index
 module.exports.flush = function() {
     cacheFlush();
@@ -40,15 +39,18 @@ function cachePush(track) {
         registerAutoFlush();
     }
 }
-
 function cacheFlush() {
-    // Clear the autoflush timeout id if it exists
-    autoflush = 0;
+    pingServer(function() {
+        // Clear the autoflush timeout id if it exists
+        autoflush = 0;
 
-    bulkPost(getDataForCache(cache));
-    cache = [];
+        var c = cache.splice(0, MAX_CACHE_SIZE);
+        bulkPost(getDataForCache(c));
+    }, function() {
+        console.log("ES: Server unavailable");
+        return;
+    });
 }
-
 function bulkPost(data) {
     // Prevent caching empty data
     if (data.length == 0) {
@@ -63,6 +65,17 @@ function bulkPost(data) {
             console.log("ES: Indexed " + count + " tracks in Elasticsearch");
         } else {
             console.log("ES: " + err);
+        }
+    });
+}
+function pingServer(success, fail) {
+    client.ping({
+        requestTimeout: 1000
+    }, function(err) {
+        if (err) {
+            fail();
+        } else {
+            success();
         }
     });
 }
