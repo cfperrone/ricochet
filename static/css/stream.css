@@ -34,6 +34,14 @@ body > .container-fluid {
     float: left;
 }
 
+.search {
+    width: 60%;
+}
+    .search .input-group,
+    #search-query {
+        width: 100%;
+    }
+
 .play, .next, .prev {
     cursor: pointer;
 }
