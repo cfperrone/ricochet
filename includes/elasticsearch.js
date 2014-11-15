@@ -55,6 +55,11 @@ module.exports.search = function(_query, then) {
        console.log(task_ids);
         then(task_ids);
     });
+},
+// Searches with a wildcard appended. This is best suited for fields that
+// are marked as index: not_analyzed
+module.exports.searchWildcard = function(_query, then) {
+    module.exports.search(_query + '*', then);
 }
 
 // -- Local Functions

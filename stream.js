@@ -372,7 +372,7 @@ function tagOrDefault(tag, def) {
 
 // -- Search functions
 function search(query, then) {
-    elasticsearch.search(query, function(task_ids) {
+    elasticsearch.searchWildcard(query, function(task_ids) {
         models.Track.findAll({
             where: {
                 id: task_ids
