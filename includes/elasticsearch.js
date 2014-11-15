@@ -50,9 +50,8 @@ module.exports.search = function(_query, then) {
             task_ids = [];
         hits.forEach(function(hit) {
             task_ids.push(hit._id);
-            console.log(hit);
         });
-       console.log(task_ids);
+
         then(task_ids);
     });
 },
