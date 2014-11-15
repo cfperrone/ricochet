@@ -192,6 +192,22 @@ app.post('/server/reindex', isLoggedIn, function(req, res) {
     updateIndex();
     res.send("OK");
 });
+app.get('/server/status', function(req, res) {
+    var logged_in = req.isAuthenticated();
+
+    var data = {
+        is_logged_in: logged_in,
+        uptime: process.uptime()
+    }
+
+    if (logged_in) {
+        data.user = {
+            id: req.user.id
+        }
+    }
+
+    res.json(data);
+});
 
 // -- Profile
 app.get('/profile', isLoggedIn, function(req, res) {

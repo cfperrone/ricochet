@@ -143,6 +143,16 @@ var progressInterval = setInterval(function() {
 
 }, 250);
 
+// Server keepalive / login check
+var keepaliveInterval = setInterval(function() {
+    $.getJSON('/server/status', function(data) {
+        // If logged out, redirect to login page
+        if (data.is_logged_in == false) {
+            window.location = '/login';
+        }
+    });
+}, 5000);
+
 // Audio Player Events
 PLAYER.on('ended', function() {
     // Increment play count for finished track
