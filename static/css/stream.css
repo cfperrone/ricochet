@@ -1,6 +1,10 @@
 body {
-    padding-top: 70px;
-    padding-bottom: 50px;
+    padding-top: 55px;
+    padding-bottom: 40px;
+}
+
+body > .container-fluid {
+    padding: 0;
 }
 
 .brand {
@@ -33,8 +37,14 @@ body {
 .play, .next, .prev {
     cursor: pointer;
 }
+
 .track {
     cursor: pointer;
+}
+
+.library th:first-child,
+.library td:first-child {
+    padding-left: 15px;
 }
 
 .progress {
