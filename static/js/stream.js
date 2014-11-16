@@ -151,7 +151,7 @@ var keepaliveInterval = setInterval(function() {
             window.location = '/login';
         }
     });
-}, 5000);
+}, 10000);
 
 // Audio Player Events
 PLAYER.on('ended', function() {
