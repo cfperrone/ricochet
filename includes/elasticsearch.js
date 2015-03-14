@@ -32,6 +32,7 @@ module.exports.search = function(_query, then) {
         index: es_index,
         type: es_type,
         q: _query,
+        size: 100,
         fields: false
     }, function(error, response) {
         if (error) {
