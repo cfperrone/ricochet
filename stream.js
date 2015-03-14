@@ -1,5 +1,4 @@
 var express = require('express'),
-    lame = require('lame'),
     fs = require('fs'),
     jade = require('jade'),
     file = require('file'),
