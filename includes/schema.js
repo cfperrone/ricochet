@@ -87,6 +87,7 @@ module.exports = function(db, config, afterSync) {
         username: Sequelize.STRING(255),
         email_address: Sequelize.STRING(255),
         password: Sequelize.STRING(40),
+        salt: Sequelize.STRING(40),
         lastfm_user: Sequelize.STRING(255),
         lastfm_session: Sequelize.STRING(64),
         lastfm_scrobble: {
@@ -101,15 +102,20 @@ module.exports = function(db, config, afterSync) {
         freezeTableName: true,
         instanceMethods: {
             isValidPassword: function(input) {
-                return (models.User.createPassword(input) === this.password);
+                return (models.User.createPassword(input, this.salt) === this.password);
             },
             canScrobble: function() {
                 return (this.lastfm_session != '') && (this.lastfm_scrobble == true);
             }
         },
         classMethods: {
-            createPassword: function(input) {
-                return crypto.createHash('sha1').update(config.password_salt + input).digest('hex');
+            createPassword: function(input, salt) {
+                return crypto.createHash('sha1').update(config.password_secret + salt + input).digest('hex');
+            },
+
+            // Generates a new random salt
+            generateSalt: function() {
+                return crypto.randomBytes(32).toString('base64');
             }
         }
     });

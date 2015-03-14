@@ -1,7 +1,7 @@
 module.exports.config = {
     // Server configuration
     port: 8081,
-    password_salt: 'change-to-something-cool',
+    password_secret: 'change-to-something-cool',
     root_url: 'http://localhost',
 
     // Music Indexing Configuration
